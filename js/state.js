@@ -221,14 +221,19 @@ const AppState = {
     },
 
     loadSettings(settings) {
+        console.log("Attempting to load settings:", JSON.stringify(settings)); // DEBUG
         if (!settings || !settings.generatorId || !GeneratorRegistry.getGenerator(settings.generatorId)) {
             console.error("Invalid settings object or generator ID.");
+            alert("Неверный формат файла настроек или не найден указанный генератор."); // User feedback
             return false;
         }
         this.currentGeneratorId = settings.generatorId;
-        this.selectedOptions = settings.options || {};
-        this.ruleModuleStates = settings.modules || {};
-        console.log(`Settings loaded for generator '${this.currentGeneratorId}'.`);
+        // Ensure deep copies when loading to prevent reference issues
+        this.selectedOptions = JSON.parse(JSON.stringify(settings.options || {}));
+        this.ruleModuleStates = JSON.parse(JSON.stringify(settings.modules || {}));
+        console.log(`Settings successfully loaded for generator '${this.currentGeneratorId}'.`); // DEBUG
+        console.log(" - Loaded Options:", JSON.stringify(this.selectedOptions)); // DEBUG
+        console.log(" - Loaded Modules:", JSON.stringify(this.ruleModuleStates)); // DEBUG
         return true;
     }
 };

@@ -39,16 +39,22 @@ const RuleEngine = {
 
         // 3. Примечания/Послесловие (если включено и определено)
         const notesModuleId = generator.structure?.notesModuleId;
-        if (notesModuleId && ruleModuleStates[notesModuleId] !== false && generator.ruleModules.find(m => m.id === notesModuleId)) {
+
+        if (notesModuleId && generator.ruleModules.find(m => m.id === notesModuleId)) {
              const notesModule = generator.ruleModules.find(m => m.id === notesModuleId);
-             if (this.checkConditions(notesModule.conditions, selectedOptions)) {
+             const isNotesModuleEnabled = ruleModuleStates[notesModuleId] !== false;
+             const notesModuleConditionsMet = this.checkConditions(notesModule.conditions, selectedOptions);
+
+             if (notesModule && isNotesModuleEnabled && notesModuleConditionsMet) {
                  // Обработка вложенных примечаний (если они есть и управляются отдельно)
                  let notesContent = "";
                  let noteCounter = 1;
                  if (notesModule.subModules) {
                      let subNotesText = "";
                      notesModule.subModules.forEach(subModule => {
-                         if (ruleModuleStates[subModule.id] !== false && this.checkConditions(subModule.conditions, selectedOptions)) {
+                         const isSubModuleEnabled = ruleModuleStates[subModule.id] !== false;
+                         const subModuleConditionsMet = this.checkConditions(subModule.conditions, selectedOptions);
+                         if (isSubModuleEnabled && subModuleConditionsMet) {
                              // Format submodule text, passing its ID
                              const formattedSubNote = this.formatText(subModule.textTemplate, selectedOptions, ruleModuleStates, subModule.id);
                              if (formattedSubNote.trim()) { // Only add if there's content
@@ -58,9 +64,14 @@ const RuleEngine = {
                          }
                      });
                      // Use the main module's template, replacing {{subNotes}}
-                     const mainNotesTemplate = notesModule.textTemplate || "{{subNotes}}"; // Default if template missing
-                     notesContent = this.formatText(mainNotesTemplate, selectedOptions, ruleModuleStates, notesModule.id)
-                                        .replace(/\{\{subNotes\}\}/g, subNotesText.trim());
+                     const mainNotesTemplate = notesModule.textTemplate || "{{subNotes}}";
+
+                     // --- CORRECTED ORDER ---
+                     // 1. Replace the placeholder first
+                     let contentWithSubnotes = mainNotesTemplate.replace(/\{\{subNotes\}\}/g, subNotesText.trim());
+                     // 2. Then format the result (in case the main template had other placeholders/blocks)
+                     notesContent = this.formatText(contentWithSubnotes, selectedOptions, ruleModuleStates, notesModule.id);
+                     // --- END CORRECTION ---
 
                  } else {
                      // If no submodules, just format the main notes template

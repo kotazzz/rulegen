@@ -262,16 +262,26 @@ const UI = {
         input.value = option.value;
         input.id = `check-${section.id}-${option.value}`;
         input.dataset.type = section.id;
-        
+
         // Get array of selected values from AppState
         const sectionValues = AppState.selectedOptions[section.id] || [];
+
+        // --- DEBUG ---
+        console.log(`createCheckbox - Section: ${section.id}, Option: ${option.value}`);
+        console.log(` - State Values: [${sectionValues.join(', ')}]`);
+        console.log(` - option.value type: ${typeof option.value}`);
+        console.log(` - State array elements type: ${sectionValues.length > 0 ? typeof sectionValues[0] : 'N/A'}`);
+        console.log(` - includes check result: ${sectionValues.includes(option.value)}`);
+        // --- END DEBUG ---
+
         // Set checked based on state or default
         input.checked = sectionValues.includes(option.value);
-        
+
         // If not in state but should be checked by default, update state
         if (!sectionValues.includes(option.value) && option.checked) {
+            console.log(` - Applying default checked state for ${option.value}`); // DEBUG
             AppState.updateMultiOption(section.id, option.value, true);
-            input.checked = true;
+            input.checked = true; // Ensure UI reflects the default state update
         }
 
         const label = document.createElement('label');
@@ -298,12 +308,12 @@ const UI = {
     renderRuleModules(generator) {
         this.destroyAllTooltips();
         // Clear only the modules, not the advanced switch container if it exists
-        const modulesContent = this.modulesContainer.querySelectorAll('.module-container, .regular-modules, .advanced-settings'); // Select old containers too for cleanup
+        const modulesContent = this.modulesContainer.querySelectorAll('.module-container, .regular-modules, .advanced-settings, .text-muted.p-2'); // Select old containers AND placeholder for cleanup
         modulesContent.forEach(el => el.remove());
 
         if (!generator.ruleModules || generator.ruleModules.length === 0) {
             const placeholder = document.createElement('p');
-            placeholder.className = 'text-muted p-2';
+            placeholder.className = 'text-muted p-2'; // Use the same class as the initial placeholder
             placeholder.textContent = 'Модули правил не определены для этого генератора.';
             this.modulesContainer.appendChild(placeholder);
             return;
@@ -311,13 +321,11 @@ const UI = {
 
         // Render modules directly into the modulesContainer
         generator.ruleModules
-            // .filter(m => !m.isAdvanced) // No longer filter, show all
             .forEach(module => {
-                const moduleElement = this.createModuleElement(module); // Will now include advanced settings container if applicable
+                const moduleElement = this.createModuleElement(module);
                 this.modulesContainer.appendChild(moduleElement);
             });
 
-        // REMOVE call to createAdvancedRuleSettings
         // Apply initial visibility for advanced settings based on current mode
         this.toggleAdvancedModeVisibility(AppState.selectedOptions.advancedMode === true);
     },
@@ -726,15 +734,25 @@ const UI = {
     },
 
     handleImportSettings() {
+        console.log("Import settings button clicked."); // DEBUG
         // TODO: Add visual feedback (e.g., toast) on successful/failed import.
         Exporter.importSettings((settings) => {
+            console.log("Settings received from file:", JSON.stringify(settings)); // DEBUG
             if (AppState.loadSettings(settings)) {
+                console.log("AppState loaded settings successfully. Updating UI..."); // DEBUG
                 // Ensure the correct generator is selected in the dropdown
                 this.generatorSelect.value = AppState.currentGeneratorId;
-                // Re-render UI
+                console.log(`Set generatorSelect.value to: ${this.generatorSelect.value}`); // DEBUG
+                // Re-render UI based on the newly loaded state
                 this.renderGeneratorUI(AppState.currentGeneratorId);
-                // Generate preview
+                console.log("UI re-rendered."); // DEBUG
+                // Generate preview based on the loaded settings
                 this.handleGenerateClick();
+                console.log("Preview generated."); // DEBUG
+                alert("Настройки успешно импортированы!"); // User feedback
+            } else {
+                 console.error("AppState failed to load settings."); // DEBUG
+                 // Error message is handled within AppState.loadSettings
             }
         });
     },
