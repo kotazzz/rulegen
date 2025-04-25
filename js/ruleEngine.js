@@ -219,45 +219,22 @@ const RuleEngine = {
 
             let renderedContent = "";
             
-            // Find all 'when' tags and their positions within the caseContent
-            const whenMatches = [];
-            const findWhenRegex = /\{\{#when (\S+?)\}\}/g;
-            let regexMatch;
-            while ((regexMatch = findWhenRegex.exec(caseContent)) !== null) {
-                whenMatches.push({
-                    value: regexMatch[1],
-                    startIndex: regexMatch.index,
-                    tagLength: regexMatch[0].length
-                });
-            }
-
-            // Iterate through the found 'when' tags to find the one matching actualValue
-            for (let i = 0; i < whenMatches.length; i++) {
-                const currentMatch = whenMatches[i];
-
-                if (actualValue === currentMatch.value) {
-                    // Found the matching 'when' block
-                    const contentStartIndex = currentMatch.startIndex + currentMatch.tagLength;
-                    let contentEndIndex;
-
-                    // Determine the end index: it's the start of the *next* 'when' tag,
-                    // or the end of the entire caseContent if this is the last 'when' tag.
-                    if (i + 1 < whenMatches.length) {
-                        contentEndIndex = whenMatches[i + 1].startIndex;
-                    } else {
-                        contentEndIndex = caseContent.length; 
-                    }
-
-                    // Extract the content specific to this 'when' block AND TRIM IT
-                    const contentWhen = caseContent.substring(contentStartIndex, contentEndIndex).trim(); // <-- Added .trim() here
-                    
-                    // Recursively format the extracted content
-                    // Pass moduleId down for potential nested overrides (though unlikely in #when)
-                    renderedContent = this.formatText(contentWhen, selectedOptions, ruleModuleStates, moduleId); 
-                    break; // Stop searching once the matching case is found and processed
+            // IMPROVED APPROACH: Find and extract content between matching when/when tags
+            const whenRegex = /\{\{#when\s+(\S+?)\}\}([\s\S]*?)\{\{\/when\}\}/g;
+            let whenMatch;
+            
+            while ((whenMatch = whenRegex.exec(caseContent)) !== null) {
+                const whenValue = whenMatch[1];
+                const whenContent = whenMatch[2];
+                
+                if (actualValue === whenValue) {
+                    // Found the matching when block, process its content
+                    renderedContent = this.formatText(whenContent, selectedOptions, ruleModuleStates, moduleId);
+                    break; // Exit after finding the matching block
                 }
             }
-            return renderedContent; // Return the formatted content of the matched 'when' block
+            
+            return renderedContent;
         });
 
         // Simple placeholder replacement {{key}}
