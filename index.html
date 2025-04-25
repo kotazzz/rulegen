@@ -9,48 +9,120 @@
     <!-- Font Awesome CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
-        body { padding-top: 20px; }
-        .options-section { margin-bottom: 20px; }
+        body { padding-top: 20px; background-color: #f8f9fa; }
+        .container { max-width: 1140px; }
+        .card { margin-bottom: 1.5rem; }
+        .card-header { font-weight: bold; }
+        .btn-group .btn { flex-grow: 1; } /* Make buttons in a group fill width */
         #generated-rules {
             white-space: pre-wrap; /* Preserve whitespace and wrap text */
-            background-color: #f8f9fa;
+            background-color: #fff;
             border: 1px solid #dee2e6;
             padding: 15px;
-            min-height: 200px;
+            min-height: 300px; /* Increased height */
+            max-height: 60vh; /* Limit max height */
+            overflow-y: auto; /* Add scroll if needed */
+            font-family: monospace; /* Use monospace font for rules */
         }
+        .form-check { margin-bottom: 0.5rem; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="mb-4"><i class="fas fa-gavel"></i> Генератор Правил</h1>
-
-        <div class="options-section">
-            <h2>Настройки генерации:</h2>
-            <div class="mb-3">
-                <label class="form-label">Жесткость:</label>
-                <div>
-                    <button type="button" class="btn btn-outline-primary rule-option" data-type="strictness" data-value="low"><i class="fas fa-thumbs-up"></i> Мягкие</button>
-                    <button type="button" class="btn btn-outline-warning rule-option" data-type="strictness" data-value="medium"><i class="fas fa-balance-scale"></i> Средние</button>
-                    <button type="button" class="btn btn-outline-danger rule-option" data-type="strictness" data-value="high"><i class="fas fa-skull-crossbones"></i> Строгие</button>
-                </div>
-            </div>
-             <div class="mb-3">
-                <label class="form-label">Подробность:</label>
-                 <div>
-                    <button type="button" class="btn btn-outline-secondary rule-option" data-type="detail" data-value="brief"><i class="fas fa-align-left"></i> Кратко</button>
-                    <button type="button" class="btn btn-outline-info rule-option" data-type="detail" data-value="detailed"><i class="fas fa-list"></i> Подробно</button>
-                </div>
-            </div>
-            <!-- Добавьте здесь другие опции (структура и т.д.) по аналогии -->
+        <div class="text-center mb-4">
+             <h1 class="mb-3"><i class="fas fa-gavel"></i> Генератор Правил</h1>
+             <p class="lead">Настройте параметры и получите готовый свод правил.</p>
         </div>
 
-        <button id="generate-btn" class="btn btn-success mb-3"><i class="fas fa-cogs"></i> Сгенерировать Правила</button>
 
-        <h2>Сгенерированные правила:</h2>
-        <pre id="generated-rules">Нажмите "Сгенерировать Правила" для получения результата.</pre>
+        <div class="row">
+            <!-- Options Column -->
+            <div class="col-lg-4">
+                <h2 class="h4 mb-3"><i class="fas fa-sliders-h"></i> Настройки Генерации</h2>
 
-        <button id="download-btn" class="btn btn-secondary mt-3" style="display: none;"><i class="fas fa-download"></i> Скачать .txt</button>
+                <!-- Strictness Card -->
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <i class="fas fa-shield-alt"></i> Жесткость
+                    </div>
+                    <div class="card-body">
+                        <div class="btn-group w-100" role="group" aria-label="Strictness Options">
+                            <button type="button" class="btn btn-outline-primary rule-option" data-type="strictness" data-value="low"><i class="fas fa-thumbs-up"></i> Мягкие</button>
+                            <button type="button" class="btn btn-outline-warning rule-option" data-type="strictness" data-value="medium"><i class="fas fa-balance-scale"></i> Средние</button>
+                            <button type="button" class="btn btn-outline-danger rule-option" data-type="strictness" data-value="high"><i class="fas fa-skull-crossbones"></i> Строгие</button>
+                        </div>
+                    </div>
+                </div>
 
+                <!-- Detail Card -->
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <i class="fas fa-align-left"></i> Подробность
+                    </div>
+                    <div class="card-body"></div>
+                         <div class="btn-group w-100" role="group" aria-label="Detail Options">
+                            <button type="button" class="btn btn-outline-secondary rule-option" data-type="detail" data-value="brief"><i class="fas fa-stream"></i> Кратко</button>
+                            <button type="button" class="btn btn-outline-info rule-option" data-type="detail" data-value="detailed"><i class="fas fa-list-ul"></i> Подробно</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Structure Card (Example with Checkboxes) -->
+                 <div class="card shadow-sm">
+                    <div class="card-header">
+                        <i class="fas fa-sitemap"></i> Структура Документа
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check">
+                            <input class="form-check-input rule-option-checkbox" type="checkbox" value="intro" id="struct-intro" data-type="structure" checked>
+                            <label class="form-check-label" for="struct-intro">
+                                <i class="fas fa-book-open"></i> Введение
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input rule-option-checkbox" type="checkbox" value="definitions" id="struct-defs" data-type="structure" checked>
+                            <label class="form-check-label" for="struct-defs">
+                                <i class="fas fa-bookmark"></i> Определения Терминов
+                            </label>
+                        </div>
+                         <div class="form-check">
+                            <input class="form-check-input rule-option-checkbox" type="checkbox" value="general" id="struct-general" data-type="structure" checked>
+                            <label class="form-check-label" for="struct-general">
+                                <i class="fas fa-check-circle"></i> Общие Положения
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input rule-option-checkbox" type="checkbox" value="penalties" id="struct-penalties" data-type="structure">
+                            <label class="form-check-label" for="struct-penalties">
+                                <i class="fas fa-exclamation-triangle"></i> Ответственность и Наказания
+                            </label>
+                        </div>
+                         <div class="form-check">
+                            <input class="form-check-input rule-option-checkbox" type="checkbox" value="appeals" id="struct-appeals" data-type="structure">
+                            <label class="form-check-label" for="struct-appeals">
+                                <i class="fas fa-gavel"></i> Порядок Обжалования
+                            </label>
+                        </div>
+                        <!-- Add more structure options as needed -->
+                    </div>
+                </div>
+
+                <!-- Add more option cards here -->
+
+            </div>
+
+            <!-- Output Column -->
+            <div class="col-lg-8">
+                 <h2 class="h4 mb-3"><i class="fas fa-file-alt"></i> Результат Генерации</h2>
+                 <div class="d-grid gap-2 mb-3">
+                    <button id="generate-btn" class="btn btn-success btn-lg"><i class="fas fa-cogs"></i> Сгенерировать Правила</button>
+                 </div>
+                <pre id="generated-rules">Выберите настройки слева и нажмите "Сгенерировать Правила".</pre>
+                 <div class="d-grid gap-2 mt-3">
+                    <button id="download-btn" class="btn btn-secondary" style="display: none;"><i class="fas fa-download"></i> Скачать .txt</button>
+                 </div>
+            </div>
+        </div>
     </div>
 
     <!-- Bootstrap JS Bundle (includes Popper) -->
