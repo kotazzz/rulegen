@@ -28,8 +28,8 @@ const RuleEngine = {
             // Выполняются ли условия для показа модуля?
             if (!this.checkConditions(module.conditions, selectedOptions)) return;
 
-            // Форматируем текст правила
-            const formattedText = this.formatText(module.textTemplate, selectedOptions, ruleModuleStates);
+            // Форматируем текст правила, передавая ID модуля для возможной проверки переопределений
+            const formattedText = this.formatText(module.textTemplate, selectedOptions, ruleModuleStates, module.id);
             // Add numbering only if the formatted text is not empty
             if (formattedText.trim()) {
                 output += `${ruleCounter}. ${formattedText}\n\n`;
@@ -49,8 +49,8 @@ const RuleEngine = {
                      let subNotesText = "";
                      notesModule.subModules.forEach(subModule => {
                          if (ruleModuleStates[subModule.id] !== false && this.checkConditions(subModule.conditions, selectedOptions)) {
-                             // Format submodule text before adding prefix
-                             const formattedSubNote = this.formatText(subModule.textTemplate, selectedOptions, ruleModuleStates);
+                             // Format submodule text, passing its ID
+                             const formattedSubNote = this.formatText(subModule.textTemplate, selectedOptions, ruleModuleStates, subModule.id);
                              if (formattedSubNote.trim()) { // Only add if there's content
                                  subNotesText += `Примечание ${noteCounter}: ${formattedSubNote}\n`;
                                  noteCounter++;
@@ -59,12 +59,12 @@ const RuleEngine = {
                      });
                      // Use the main module's template, replacing {{subNotes}}
                      const mainNotesTemplate = notesModule.textTemplate || "{{subNotes}}"; // Default if template missing
-                     notesContent = this.formatText(mainNotesTemplate, selectedOptions, ruleModuleStates)
+                     notesContent = this.formatText(mainNotesTemplate, selectedOptions, ruleModuleStates, notesModule.id)
                                         .replace(/\{\{subNotes\}\}/g, subNotesText.trim());
 
                  } else {
                      // If no submodules, just format the main notes template
-                     notesContent = this.formatText(notesModule.textTemplate, selectedOptions, ruleModuleStates);
+                     notesContent = this.formatText(notesModule.textTemplate, selectedOptions, ruleModuleStates, notesModule.id);
                  }
 
                  // Add the notes section only if it has content
@@ -79,177 +79,193 @@ const RuleEngine = {
 
     /**
      * Проверяет, выполняются ли условия для отображения модуля/опции.
-     * conditions: { sectionId: [allowedValue1, allowedValue2], sectionId2: allowedValue, ... }
-     * selectedOptions: { sectionId: selectedValue, sectionId2: [val1, val2], ... }
+     * conditions: { sectionId: allowedValueOrArray, 'sectionId.optionKey': boolean, ... }
+     * selectedOptions: { sectionId: selectedValueOrArray, ... }
      */
     checkConditions(conditions, selectedOptions) {
         if (!conditions) return true; // No conditions means always show
 
-        for (const sectionId in conditions) {
-            const requiredValue = conditions[sectionId];
-            const actualValue = selectedOptions[sectionId]; // Can be string, array, boolean, or undefined
+        for (const key in conditions) {
+            const requiredValue = conditions[key];
+            let conditionMet = false;
 
-            if (typeof requiredValue === 'boolean') {
-                // Handling boolean conditions (e.g., { general: ['allow18plus', true] })
-                // Check if the *actual* value (which might be an array for checkboxes)
-                // contains the key part ('allow18plus') and if the required value is true,
-                // OR if it *doesn't* contain the key part and the required value is false.
-                const keyToCheck = sectionId; // In this structure, sectionId holds the key like 'allow18plus'
-                const isPresent = Array.isArray(actualValue) ? actualValue.includes(keyToCheck) : actualValue === keyToCheck; // Simplified check
-
-                // This logic needs refinement based on how boolean options are stored in selectedOptions.
-                // Assuming checkboxes store their value in an array under the sectionId:
-                // e.g., selectedOptions.general = ['allowAds', 'showModerationActions']
-
-                // Let's refine the condition structure slightly in the generator:
-                // conditions: { 'general.allow18plus': true } // Check if 'allow18plus' is in the 'general' array
-                // conditions: { 'general.allow18plus': false } // Check if 'allow18plus' is NOT in the 'general' array
-
-                const parts = sectionId.split('.');
+            // Check for boolean condition format 'sectionId.optionKey'
+            if (key.includes('.')) {
+                const parts = key.split('.');
                 if (parts.length === 2) {
-                    const realSectionId = parts[0];
+                    const sectionId = parts[0];
                     const optionKey = parts[1];
-                    const actualSectionValue = selectedOptions[realSectionId]; // Should be an array for checkboxes
+                    const actualSectionValue = selectedOptions[sectionId]; // Should be an array for checkboxes
 
-                    if (!Array.isArray(actualSectionValue)) {
-                         // If the section isn't an array (e.g., not a checkbox section), this condition type is likely wrong
-                         // Or handle single-choice boolean options if necessary
-                         if (requiredValue === true && actualSectionValue !== optionKey) return false;
-                         if (requiredValue === false && actualSectionValue === optionKey) return false;
-                         continue; // Check next condition
-                    }
-
-                    const isIncluded = actualSectionValue.includes(optionKey);
-
-                    if (requiredValue === true && !isIncluded) {
-                        return false; // Required true, but not included
-                    }
-                    if (requiredValue === false && isIncluded) {
-                        return false; // Required false, but is included
+                    if (Array.isArray(actualSectionValue)) {
+                        const isIncluded = actualSectionValue.includes(optionKey);
+                        if (requiredValue === true && isIncluded) {
+                            conditionMet = true;
+                        } else if (requiredValue === false && !isIncluded) {
+                            conditionMet = true;
+                        }
+                    } else {
+                        // Handle cases where the section value isn't an array (e.g., single choice button section)
+                        // This type of condition ('section.option': true/false) usually makes sense for multi-choice sections.
+                        // If used on a single-choice section, the logic might need adjustment based on intent.
+                        // For now, assume false if the structure doesn't match expectations.
+                        conditionMet = false; 
                     }
                 } else {
-                     // Original logic for non-boolean conditions (string or array comparison)
-                     const requiredValuesArray = Array.isArray(requiredValue) ? requiredValue : [requiredValue];
-
-                     if (actualValue === undefined || actualValue === null) return false; // Required section not selected
-
-                     if (Array.isArray(actualValue)) {
-                         // Check intersection for multi-select actual values
-                         if (!requiredValuesArray.some(req => actualValue.includes(req))) {
-                             return false;
-                         }
-                     } else {
-                         // Check inclusion for single-select actual value
-                         if (!requiredValuesArray.includes(actualValue)) {
-                             return false;
-                         }
-                     }
+                    // Malformed key? Treat as unmet.
+                    conditionMet = false;
                 }
-
             } else {
-                 // Original logic for non-boolean conditions (string or array comparison)
-                 const requiredValuesArray = Array.isArray(requiredValue) ? requiredValue : [requiredValue];
+                // Handle standard condition format 'sectionId': valueOrArray
+                const actualValue = selectedOptions[key];
+                const requiredValuesArray = Array.isArray(requiredValue) ? requiredValue : [requiredValue];
 
-                 if (actualValue === undefined || actualValue === null) return false; // Required section not selected
+                if (actualValue !== undefined && actualValue !== null) {
+                    if (Array.isArray(actualValue)) {
+                        // Check intersection for multi-select actual values
+                        if (requiredValuesArray.some(req => actualValue.includes(req))) {
+                            conditionMet = true;
+                        }
+                    } else {
+                        // Check inclusion for single-select actual value
+                        if (requiredValuesArray.includes(actualValue)) {
+                            conditionMet = true;
+                        }
+                    }
+                }
+            }
 
-                 if (Array.isArray(actualValue)) {
-                     // Check intersection for multi-select actual values
-                     if (!requiredValuesArray.some(req => actualValue.includes(req))) {
-                         return false;
-                     }
-                 } else {
-                     // Check inclusion for single-select actual value
-                     if (!requiredValuesArray.includes(actualValue)) {
-                         return false;
-                     }
-                 }
+            // If any condition is not met, return false immediately
+            if (!conditionMet) {
+                return false;
             }
         }
+
         return true; // All conditions met
     },
 
     /**
-     * Форматирует текст шаблона, заменяя плейсхолдеры вида {{sectionId}} или {{sectionId.optionValue}}.
-     * Пока простая замена, можно усложнить.
+     * Форматирует текст шаблона.
+     * @param {string} template - The template string.
+     * @param {object} selectedOptions - The options object (potentially with overrides).
+     * @param {object} ruleModuleStates - Module enabled states.
+     * @param {string} [moduleId] - The ID of the current module being processed (for checking overrides).
+     * @returns {string} The formatted text.
      */
-    formatText(template, selectedOptions, ruleModuleStates) { // Added ruleModuleStates if needed for conditions
+    formatText(template, selectedOptions, ruleModuleStates, moduleId) { 
         if (!template) return "";
         let result = template;
 
-        // Handle {{#if section.option}}...{{/if}} blocks
+        // Handle {{#if conditionKey}}...{{/if}} blocks
+        // TODO: Add support for nested {{#if}} blocks if needed. Current regex is basic.
         result = result.replace(/\{\{#if (\S+?)\}\}([\s\S]*?)\{\{\/if\}\}/g, (match, conditionKey, content) => {
-            // Condition check needs to be robust
-            // Example: conditionKey = "general.showModerationActions"
-            const parts = conditionKey.split('.');
             let conditionMet = false;
-            if (parts.length === 2) {
-                const sectionId = parts[0];
-                const optionKey = parts[1];
-                const sectionValue = selectedOptions[sectionId]; // Could be array (checkboxes) or string (buttons)
-
-                if (Array.isArray(sectionValue)) { // Checkbox section
-                    conditionMet = sectionValue.includes(optionKey);
-                } else { // Button section (or other single value)
-                    // Simple truthy check might suffice, or specific value check if needed
-                     conditionMet = !!sectionValue; // Example: check if any option is selected in the section
-                     // Or more specific: conditionMet = sectionValue === optionKey; (if checking for a specific button value)
-                     // For the generator's use case, it seems to check if the *flag* exists in the array:
-                     if (Array.isArray(selectedOptions[sectionId])) {
-                         conditionMet = selectedOptions[sectionId].includes(optionKey);
-                     } else {
-                         // Fallback or error? Assume false if not an array for this type of check.
-                         conditionMet = false;
-                     }
-                }
+            
+            // Check for rule-specific override first (e.g., rule_moduleId_showActions)
+            const overrideKeyShowActions = `rule_${moduleId}_showActions`;
+            if (moduleId && selectedOptions.hasOwnProperty(overrideKeyShowActions)) {
+                 // Check if the conditionKey matches the generic part (e.g., general.showModerationActions)
+                 // This assumes the #if condition relates to the overridable setting.
+                 // More robust mapping might be needed for complex cases.
+                 if (conditionKey === 'general.showModerationActions') { // Example specific check
+                     conditionMet = selectedOptions[overrideKeyShowActions] === true;
+                 }
+                 // Add checks for other potential overridable conditions if necessary
             } else {
-                 // Handle simple boolean flags if stored directly? e.g., {{#if someFlag}}
-                 conditionMet = !!selectedOptions[conditionKey];
+                // If no specific override, check the global condition
+                const parts = conditionKey.split('.');
+                if (parts.length === 2) {
+                    const sectionId = parts[0];
+                    const optionKey = parts[1];
+                    const sectionValue = selectedOptions[sectionId];
+                    if (Array.isArray(sectionValue)) {
+                        conditionMet = sectionValue.includes(optionKey);
+                    } else {
+                        // Handle non-array section values if necessary for #if
+                        conditionMet = !!sectionValue; // Simple truthy check for non-arrays
+                    }
+                } else {
+                    conditionMet = !!selectedOptions[conditionKey]; // Check direct boolean flags
+                }
             }
 
             // Recursively format the content if condition is met
-            return conditionMet ? this.formatText(content, selectedOptions, ruleModuleStates) : "";
+            return conditionMet ? this.formatText(content, selectedOptions, ruleModuleStates, moduleId) : "";
         });
 
         // Handle {{#case section}}...{{#when value}}...{{/when}}...{{/case}} blocks
         result = result.replace(/\{\{#case (\S+?)\}\}([\s\S]*?)\{\{\/case\}\}/g, (match, sectionId, caseContent) => {
-            const actualValue = selectedOptions[sectionId];
+            let actualValue;
+            
+            // Check for rule-specific override first (e.g., rule_moduleId_strictness)
+            const overrideKeyStrictness = `rule_${moduleId}_strictness`;
+             if (moduleId && sectionId === 'strictness' && selectedOptions.hasOwnProperty(overrideKeyStrictness)) {
+                 actualValue = selectedOptions[overrideKeyStrictness];
+             } else {
+                 // Use global value if no override
+                 actualValue = selectedOptions[sectionId];
+             }
+
             let renderedContent = "";
-            // Find {{#when value}} blocks within the case content
-            const whenRegex = /\{\{#when (\S+?)\}\}([\s\S]*?)(?=\{\{#when|\{\{\/case\}\})/g;
-            let whenMatch;
-            while ((whenMatch = whenRegex.exec(caseContent)) !== null) {
-                const expectedValue = whenMatch[1];
-                const contentWhen = whenMatch[2];
-                if (actualValue === expectedValue) {
-                    // Recursively format the content for the matching 'when'
-                    renderedContent = this.formatText(contentWhen, selectedOptions, ruleModuleStates);
-                    break; // Found the matching case, stop searching
+            
+            // Find all 'when' tags and their positions within the caseContent
+            const whenMatches = [];
+            const findWhenRegex = /\{\{#when (\S+?)\}\}/g;
+            let regexMatch;
+            while ((regexMatch = findWhenRegex.exec(caseContent)) !== null) {
+                whenMatches.push({
+                    value: regexMatch[1],
+                    startIndex: regexMatch.index,
+                    tagLength: regexMatch[0].length
+                });
+            }
+
+            // Iterate through the found 'when' tags to find the one matching actualValue
+            for (let i = 0; i < whenMatches.length; i++) {
+                const currentMatch = whenMatches[i];
+
+                if (actualValue === currentMatch.value) {
+                    // Found the matching 'when' block
+                    const contentStartIndex = currentMatch.startIndex + currentMatch.tagLength;
+                    let contentEndIndex;
+
+                    // Determine the end index: it's the start of the *next* 'when' tag,
+                    // or the end of the entire caseContent if this is the last 'when' tag.
+                    if (i + 1 < whenMatches.length) {
+                        contentEndIndex = whenMatches[i + 1].startIndex;
+                    } else {
+                        contentEndIndex = caseContent.length; 
+                    }
+
+                    // Extract the content specific to this 'when' block
+                    const contentWhen = caseContent.substring(contentStartIndex, contentEndIndex);
+                    
+                    // Recursively format the extracted content
+                    // Pass moduleId down for potential nested overrides (though unlikely in #when)
+                    renderedContent = this.formatText(contentWhen, selectedOptions, ruleModuleStates, moduleId); 
+                    break; // Stop searching once the matching case is found and processed
                 }
             }
-            return renderedContent;
+            return renderedContent; // Return the formatted content of the matched 'when' block
         });
 
-        // Простая замена плейсхолдеров вида {{sectionId}}
-        result = result.replace(/\{\{([^}]+)\}\}?/g, (match, key) => {
+        // Simple placeholder replacement {{key}}
+        // TODO: Add error handling for non-existent keys or potentially infinite loops.
+        result = result.replace(/\{\{([^}#\/]+)\}\}?/g, (match, key) => {
              // Avoid replacing parts of already processed blocks if syntax overlaps
-             if (key.startsWith('#') || key.startsWith('/')) return match;
+             // key = key.trim(); // Trim whitespace just in case
 
              const value = selectedOptions[key];
              if (value !== undefined && value !== null) {
-                 // Handle potential loops if a value itself contains {{...}} - unlikely here
                  return Array.isArray(value) ? value.join(', ') : String(value);
              }
-             // Check ruleModuleStates as well? Maybe not needed for simple replacement.
              // console.warn(`Placeholder {{${key}}} not found in selectedOptions.`);
-             return ''; // Return empty string if placeholder not found, instead of the placeholder itself
+             return ''; // Return empty string if placeholder not found
         });
 
-        // TODO: Добавить более сложную логику форматирования, если нужно
-        // Например, подстановку конкретных текстов в зависимости от значения опции
-
-        // Clean up extra newlines that might result from empty blocks
+        // Clean up extra newlines
         result = result.replace(/\n\s*\n/g, '\n');
 
-        return result.trim(); // Trim final result
+        return result.trim(); 
     }
 };

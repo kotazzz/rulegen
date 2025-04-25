@@ -22,9 +22,13 @@ const UI = {
         this.populateGeneratorSelect();
         this.bindEvents();
         // Load initial generator UI
-        const initialGeneratorId = this.generatorSelect.value;
+        const initialGeneratorId = this.generatorSelect.value || GeneratorRegistry.getDefaultGenerator()?.id;
         if (initialGeneratorId) {
+            this.generatorSelect.value = initialGeneratorId; // Ensure dropdown reflects the initial generator
             this.renderGeneratorUI(initialGeneratorId);
+        } else {
+            console.warn("No generators registered or default found.");
+            this.optionsContainer.innerHTML = '<p class="text-warning">Нет доступных генераторов.</p>';
         }
     },
 
@@ -49,16 +53,27 @@ const UI = {
         }
 
         AppState.setCurrentGenerator(generatorId);
+        
+        // Destroy existing tooltips before rendering new elements
+        this.destroyAllTooltips(); 
+        
         this.renderOptions(generator);
-        this.renderRuleModules(generator);
+        this.renderRuleModules(generator); // This now also calls createAdvancedRuleSettings internally
         this.updatePresetList();
         this.clearOutput();
         
         // Add advanced mode toggle only once (moved from renderRuleModules)
-        this.renderAdvancedModeControls();
+        // Check if advanced controls already exist, remove if so before re-rendering
+        const existingAdvancedControls = this.modulesContainer.querySelector('.card.mb-3');
+        if (existingAdvancedControls) {
+            existingAdvancedControls.remove();
+        }
+        this.renderAdvancedModeControls(); // Render fresh controls based on current state
         
         // Check dependencies AFTER rendering all elements
         this.checkAndApplyDependencies();
+        
+        // TODO: Add visual feedback (e.g., toast) when generator UI is loaded/updated.
     },
 
     renderAdvancedModeControls() {
@@ -106,6 +121,8 @@ const UI = {
             
             // Уничтожаем все тултипы при переключении режима
             this.destroyAllTooltips();
+            // Re-apply dependencies as visibility changes might affect them
+            this.checkAndApplyDependencies(); 
         });
         
         this.hideAdvancedBtn.addEventListener('click', () => {
@@ -122,6 +139,8 @@ const UI = {
             
             // Уничтожаем все тултипы при изменении видимости
             this.destroyAllTooltips();
+            // Re-apply dependencies
+            this.checkAndApplyDependencies(); 
         });
         
         cardBody.appendChild(this.advancedModeToggle);
@@ -164,6 +183,8 @@ const UI = {
         
         // Make sure all tooltips are destroyed when switching modes
         this.destroyAllTooltips();
+        // Re-apply dependencies after toggling visibility
+        this.checkAndApplyDependencies();
     },
     
     toggleAdvancedSettingsVisibility(isVisible) {
@@ -171,9 +192,16 @@ const UI = {
         document.querySelectorAll('.advanced-setting-item').forEach(el => {
             el.style.display = isVisible ? 'block' : 'none';
         });
+
+        // Уничтожаем тултипы при изменении видимости
+        this.destroyAllTooltips();
+        // Re-apply dependencies
+        this.checkAndApplyDependencies();
     },
     
     renderOptions(generator) {
+        // Destroy tooltips before clearing
+        this.destroyAllTooltips();
         this.optionsContainer.innerHTML = ''; // Clear previous options
         
         generator.sections.forEach(section => {
@@ -313,6 +341,8 @@ const UI = {
     },
 
     renderRuleModules(generator) {
+        // Destroy tooltips before clearing
+        this.destroyAllTooltips();
         this.modulesContainer.innerHTML = ''; // Clear previous modules
         if (!generator.ruleModules || generator.ruleModules.length === 0) {
             this.modulesContainer.innerHTML = '<p class="text-muted">Модули правил не определены для этого генератора.</p>';
@@ -577,6 +607,8 @@ const UI = {
             
             // Уничтожаем тултипы при изменении видимости
             this.destroyAllTooltips();
+            // Re-apply dependencies
+            this.checkAndApplyDependencies();
         });
         
         // Event for show actions toggle
@@ -602,6 +634,8 @@ const UI = {
             
             // Уничтожаем тултипы при изменении состояния
             this.destroyAllTooltips();
+            // Re-apply dependencies
+            this.checkAndApplyDependencies();
         });
         
         container.appendChild(settingsContainer);
@@ -676,54 +710,63 @@ const UI = {
     },
 
     handleGenerateClick() {
+        // TODO: Add loading indicator while generating
         const generator = GeneratorRegistry.getGenerator(AppState.currentGeneratorId);
         if (generator) {
-            // Apply advanced settings overrides if needed
-            this.applyAdvancedSettingsOverrides();
+            // Create a DEEP COPY of options to pass to the engine, 
+            // so advanced overrides don't permanently change AppState
+            let optionsForGeneration = JSON.parse(JSON.stringify(AppState.selectedOptions));
+
+            // Apply advanced settings overrides to the copy if needed
+            optionsForGeneration = this.applyAdvancedSettingsOverrides(optionsForGeneration);
             
-            // Generate rules
-            const rulesText = RuleEngine.generate(generator, AppState.selectedOptions, AppState.ruleModuleStates);
+            // Generate rules using the potentially modified copy
+            const rulesText = RuleEngine.generate(generator, optionsForGeneration, AppState.ruleModuleStates);
             this.displayGeneratedRules(rulesText);
         } else {
             this.displayGeneratedRules('Ошибка: Генератор не выбран или не найден.');
         }
+        // TODO: Remove loading indicator
     },
     
-    applyAdvancedSettingsOverrides() {
+    /**
+     * Applies advanced rule settings overrides to a *copy* of the options.
+     * Returns the modified options object.
+     * @param {object} optionsToModify - A copy of AppState.selectedOptions.
+     * @returns {object} The options object with overrides applied.
+     */
+    applyAdvancedSettingsOverrides(optionsToModify) {
         // Check if we're in advanced mode
-        if (AppState.selectedOptions.advancedMode !== true) return;
+        if (optionsToModify.advancedMode !== true) return optionsToModify;
         
         // Get rule settings
-        const ruleSettings = AppState.selectedOptions.ruleSettings || {};
+        const ruleSettings = optionsToModify.ruleSettings || {};
         
-        // Create temporary copy of options for rule generation
-        const tempOptions = JSON.parse(JSON.stringify(AppState.selectedOptions));
-        
-        // Apply per-rule overrides to temporary options
+        // Apply per-rule overrides
         for (const ruleId in ruleSettings) {
             const settings = ruleSettings[ruleId];
             
-            // If override is enabled, add rule-specific options
+            // If override is enabled for this rule
             if (settings.override === true) {
-                // Set rule-specific strictness
+                // Override strictness: Use rule-specific strictness if set, otherwise keep global
                 if (settings.strictness) {
-                    tempOptions[`rule_${ruleId}_strictness`] = settings.strictness;
+                    // Store rule-specific strictness under a unique key to avoid conflict
+                    // The RuleEngine's formatText needs to be aware of this pattern
+                    optionsToModify[`rule_${ruleId}_strictness`] = settings.strictness; 
                 }
                 
-                // Set rule-specific show actions flag
+                // Override showActions: Use rule-specific setting if set
                 if (settings.showActions !== undefined) {
-                    if (settings.showActions) {
-                        if (!tempOptions[`rule_${ruleId}_options`]) {
-                            tempOptions[`rule_${ruleId}_options`] = [];
-                        }
-                        tempOptions[`rule_${ruleId}_options`].push('showActions');
-                    }
+                    // Store rule-specific flag under a unique key
+                    optionsToModify[`rule_${ruleId}_showActions`] = settings.showActions;
                 }
             }
         }
         
-        // Replace options with temp options including overrides
-        AppState.selectedOptions = tempOptions;
+        // We don't need the ruleSettings object itself during generation anymore
+        // delete optionsToModify.ruleSettings; // Optional: clean up the temporary object
+
+        return optionsToModify; // Return the modified copy
     },
 
     handleDownloadClick() {
@@ -762,16 +805,23 @@ const UI = {
                 this.renderGeneratorUI(AppState.currentGeneratorId);
                 // Generate preview based on loaded settings
                 this.handleGenerateClick();
+                // Reset dropdown to placeholder
+                this.presetSelect.selectedIndex = 0; 
+                // TODO: Add visual feedback (e.g., toast) that preset was loaded.
+            } else {
+                // TODO: Add visual feedback (e.g., toast/alert) that loading failed.
             }
         }
     },
 
     handleExportSettings() {
+        // TODO: Add visual feedback (e.g., toast) on successful export.
         const settings = AppState.getSettings();
         Exporter.exportSettings(settings);
     },
 
     handleImportSettings() {
+        // TODO: Add visual feedback (e.g., toast) on successful/failed import.
         Exporter.importSettings((settings) => {
             if (AppState.loadSettings(settings)) {
                 // Ensure the correct generator is selected in the dropdown
@@ -803,6 +853,9 @@ const UI = {
      * Applies dependency checks and updates UI accordingly.
      */
     checkAndApplyDependencies() {
+        // Перед инициализацией новых тултипов уничтожаем существующие
+        this.destroyAllTooltips();
+
         // Check section cards with dependencies
         this.optionsContainer.querySelectorAll('.card[data-depends-on]').forEach(card => {
             const met = this.areDependenciesMet(card);
@@ -871,9 +924,23 @@ const UI = {
         
         // Initialize Bootstrap tooltips if available
         if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
-            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            // Ensure tooltips are only initialized on elements that *actually* need them
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]:not(.disabled-by-dependency)')); // Only non-disabled
             tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
+                // Avoid re-initializing if one already exists
+                if (!bootstrap.Tooltip.getInstance(tooltipTriggerEl)) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                }
+                return null;
+            });
+            
+            // Also initialize for disabled elements (they might have a tooltip explaining why)
+            const disabledTooltipTriggerList = [].slice.call(document.querySelectorAll('.disabled-by-dependency[data-bs-toggle="tooltip"]'));
+             disabledTooltipTriggerList.map(function (tooltipTriggerEl) {
+                if (!bootstrap.Tooltip.getInstance(tooltipTriggerEl)) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                }
+                return null;
             });
         }
     },

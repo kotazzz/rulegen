@@ -115,6 +115,7 @@ const chatRulesGenerator_v1 = {
             name: 'Правило 2: Оскорбления',
             type: 'main-rule',
             defaultEnabled: true,
+            // TODO: Consider making moderation actions (mute times, ban conditions) configurable via options.
             textTemplate: `Оскорбления: Запрещено оскорблять участников в любой форме. Запрещены сообщения, унижающие человеческое достоинство, сексуального характера, разжигающие межнациональную рознь, угрозы расправой, угрозы баном, дискриминация по религиозным или другим признакам, пропаганда/обсуждение нацизма, наркотиков, алкоголизма и табакокурения.{{#if general.showModerationActions}}
    - Действия модерации: {{#case strictness}}{{#when low}}мут (12 часов){{/when}}{{#when medium}}мут (1 день){{/when}}{{#when high}}мут (3 дня), бан (при рецидиве){{/when}}{{/case}}.{{/if}}`
         },

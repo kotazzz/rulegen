@@ -4,7 +4,8 @@ const AppState = {
     currentGeneratorId: null,
     selectedOptions: {},
     ruleModuleStates: {},
-    presets: {},
+    // Initialize with an empty object, will be populated from localStorage or defaults
+    presets: {}, 
 
     setCurrentGenerator(generatorId) {
         this.currentGeneratorId = generatorId;
@@ -25,9 +26,12 @@ const AppState = {
 
     // New method to initialize options from generator defaults
     initializeOptionsFromGenerator(generator) {
-        // Start with a clean slate
-        this.selectedOptions = {};
-        
+        // Start with a clean slate, including advanced settings
+        this.selectedOptions = {
+            advancedMode: false, // Default advanced mode to off
+            ruleSettings: {}     // Clear rule-specific settings
+        };
+
         // Initialize each section's options
         if (generator.sections) {
             generator.sections.forEach(section => {
@@ -159,9 +163,48 @@ const AppState = {
                 if (savedPresets) {
                     this.presets = JSON.parse(savedPresets);
                     console.log("Loaded presets from localStorage");
+                } else {
+                    // Add a default test preset if nothing is in localStorage
+                    this.presets = {
+                        'Test Preset': {
+                            options: {
+                                general: ['allowAds', 'showModerationActions', 'includeIntro', 'includeNotes'],
+                                strictness: 'high',
+                                advancedMode: true, // Enable advanced mode for testing
+                                ruleSettings: {
+                                    'rule-insults': { override: true, showActions: true, strictness: 'low' },
+                                    'rule-spam': { override: true, showActions: false } // Example: hide actions for spam
+                                }
+                            },
+                            modules: {
+                                'intro-main': true,
+                                'notes-main': true,
+                                'note-1': true,
+                                'note-2': false, // Disable one note for testing
+                                'note-3': true,
+                                'note-4': true,
+                                'note-5': true,
+                                'rule-order': true,
+                                'rule-insults': true,
+                                'rule-spam': true,
+                                'rule-media': false, // Should be automatically handled by conditions
+                                'rule-media-18plus': false, // Should be automatically handled by conditions
+                                'rule-ads': false, // Should be automatically handled by conditions
+                                'rule-ads-allowed': true, // Enable the allowed ads rule
+                                'rule-conflicts': true,
+                                'rule-bullying': false, // Disable one rule for testing
+                                'rule-toxic': true,
+                                'rule-politics': true,
+                                'rule-privacy': true,
+                                'rule-bypass': true
+                            }
+                        }
+                    };
+                    console.log("Initialized with default test preset.");
                 }
             } catch (e) {
-                console.warn("Failed to load presets from localStorage:", e);
+                console.warn("Failed to load or initialize presets:", e);
+                this.presets = {}; // Ensure presets is an object even on error
             }
         }
         
