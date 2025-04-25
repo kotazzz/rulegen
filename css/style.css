@@ -1,0 +1,81 @@
+/* Custom Styles for Rule Generator */
+
+body {
+    background-color: #f8f9fa;
+}
+
+.container {
+    max-width: 1200px; /* Wider container */
+}
+
+.card {
+    margin-bottom: 1rem;
+}
+
+.card-header {
+    font-weight: bold;
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+.btn-group .btn {
+    flex-grow: 1;
+}
+
+#generated-rules {
+    white-space: pre-wrap;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    padding: 15px;
+    min-height: 400px;
+    max-height: 70vh;
+    overflow-y: auto;
+    font-family: 'Courier New', Courier, monospace; /* Monospace for rules */
+    font-size: 0.9em;
+    position: relative; /* Needed for copy button positioning */
+}
+
+.form-check {
+    margin-bottom: 0.75rem;
+    background-color: #fff;
+    padding: 0.5rem 0.75rem 0.5rem 2.25rem; /* More padding */
+    border: 1px solid #eee;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.form-check:hover {
+    background-color: #f8f9fa;
+}
+
+.form-check-input {
+    margin-top: 0.4em; /* Align checkbox better */
+}
+
+.form-check label {
+    cursor: pointer;
+}
+
+.form-check i {
+    margin-right: 0.5em;
+    color: #6c757d; /* Icon color */
+}
+
+/* Style for depends-on disabled elements */
+.option-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.option-disabled .form-check-label {
+    text-decoration: line-through;
+}
+
+#copy-rules-btn {
+    opacity: 0.6;
+    transition: opacity 0.2s ease-in-out;
+}
+
+#copy-rules-btn:hover {
+    opacity: 1;
+}
