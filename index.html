@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data-Driven Генератор Правил</title>
+    <title>Генератор Правил</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <!-- Font Awesome CSS -->
@@ -12,83 +12,100 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="container mt-4">
+    <div class="container-fluid mt-3 mb-3"> <!-- Use container-fluid for more width -->
         <div class="text-center mb-4">
-            <h1 class="mb-3"><i class="fas fa-cogs"></i> Data-Driven Генератор Правил</h1>
-            <p class="lead">Выберите генератор, настройте параметры и получите правила.</p>
+            <h1 class="mb-2 h3"><i class="fas fa-cogs"></i> Генератор Правил</h1>
+            <!-- <p class="lead">Выберите генератор, настройте параметры и получите правила.</p> -->
         </div>
 
-        <!-- Generator Selection -->
-        <div class="row mb-4">
-            <div class="col-md-6 offset-md-3">
-                <label for="generator-select" class="form-label">Выберите тип правил:</label>
-                <select class="form-select" id="generator-select">
-                    <!-- Options will be populated by JS -->
-                </select>
-            </div>
-        </div>
-
-        <div class="row">
-            <!-- Options & Modules Column -->
-            <div class="col-lg-5">
-                <h2 class="h4 mb-3"><i class="fas fa-sliders-h"></i> Настройки Генератора</h2>
-                <div id="generator-options-container">
-                    <!-- Generator-specific options will be rendered here -->
-                </div>
-
-                <h2 class="h4 mt-4 mb-3"><i class="fas fa-puzzle-piece"></i> Модули Правил</h2>
-                <div id="rule-modules-container">
-                    <!-- Rule module controls (checkboxes, etc.) will be rendered here -->
-                </div>
-
-                 <h2 class="h4 mt-4 mb-3"><i class="fas fa-cogs"></i> Управление</h2>
-                 <div class="card shadow-sm mb-3">
-                     <div class="card-body">
-                        <h5 class="card-title">Пресеты</h5>
-                        <div class="input-group mb-2">
-                            <select class="form-select form-select-sm" id="preset-select">
-                                <option selected>Загрузить пресет...</option>
-                                <!-- Preset options here -->
-                            </select>
-                            <button class="btn btn-sm btn-outline-secondary" type="button" id="load-preset-btn"><i class="fas fa-upload"></i></button>
-                        </div>
-                        <div class="input-group">
-                             <input type="text" class="form-control form-control-sm" placeholder="Название нового пресета" id="save-preset-name">
-                            <button class="btn btn-sm btn-outline-primary" type="button" id="save-preset-btn"><i class="fas fa-save"></i></button>
-                        </div>
-                     </div>
-                 </div>
-                 <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Настройки</h5>
-                        <button class="btn btn-sm btn-info w-100 mb-2" id="import-settings-btn"><i class="fas fa-paste"></i> Импорт настроек</button>
-                        <button class="btn btn-sm btn-warning w-100" id="export-settings-btn"><i class="fas fa-copy"></i> Экспорт настроек</button>
+        <div class="row g-3"> <!-- Add gutter spacing -->
+            <!-- Controls Column -->
+            <div class="col-lg-5 col-xl-4">
+                <div class="sticky-top" style="top: 1rem;"> <!-- Make controls sticky -->
+                    <!-- Generator Selection -->
+                    <div class="mb-3">
+                        <label for="generator-select" class="form-label form-label-sm">Тип правил:</label>
+                        <select class="form-select form-select-sm" id="generator-select">
+                            <!-- Options populated by JS -->
+                        </select>
                     </div>
-                 </div>
+
+                    <!-- Control Tabs -->
+                    <ul class="nav nav-pills nav-fill mb-2 small-nav" id="controlTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="options-tab" data-bs-toggle="tab" data-bs-target="#options-panel" type="button" role="tab" aria-controls="options-panel" aria-selected="true"><i class="fas fa-sliders-h"></i> Настройки</button>
+                        </li>
+                        <li class="nav-item" role="presentation"></li>
+                            <button class="nav-link" id="modules-tab" data-bs-toggle="tab" data-bs-target="#modules-panel" type="button" role="tab" aria-controls="modules-panel" aria-selected="false"><i class="fas fa-puzzle-piece"></i> Модули</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="manage-tab" data-bs-toggle="tab" data-bs-target="#manage-panel" type="button" role="tab" aria-controls="manage-panel" aria-selected="false"><i class="fas fa-tasks"></i> Управление</button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="controlTabsContent">
+                        <!-- Options Panel -->
+                        <div class="tab-pane fade show active" id="options-panel" role="tabpanel" aria-labelledby="options-tab">
+                            <div id="generator-options-container" class="options-flow-container">
+                                <!-- Generator-specific options rendered here -->
+                            </div>
+                        </div>
+                        <!-- Modules Panel -->
+                        <div class="tab-pane fade" id="modules-panel" role="tabpanel" aria-labelledby="modules-tab">
+                            <div id="rule-modules-container" class="modules-list-container">
+                                <!-- Rule module controls rendered here -->
+                            </div>
+                        </div>
+                        <!-- Management Panel -->
+                        <div class="tab-pane fade" id="manage-panel" role="tabpanel" aria-labelledby="manage-tab">
+                            <div class="card card-compact mb-2">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-2">Пресеты</h6>
+                                    <div class="input-group input-group-sm mb-2">
+                                        <select class="form-select" id="preset-select">
+                                            <option selected>Загрузить пресет...</option>
+                                        </select>
+                                        <button class="btn btn-outline-secondary" type="button" id="load-preset-btn" title="Загрузить"><i class="fas fa-upload"></i></button>
+                                    </div>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control" placeholder="Название нового пресета" id="save-preset-name">
+                                        <button class="btn btn-outline-primary" type="button" id="save-preset-btn" title="Сохранить"><i class="fas fa-save"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card card-compact">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-2">Настройки</h6>
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-sm btn-info" id="import-settings-btn"><i class="fas fa-paste"></i> Импорт настроек</button>
+                                        <button class="btn btn-sm btn-warning" id="export-settings-btn"><i class="fas fa-copy"></i> Экспорт настроек</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- End sticky-top -->
             </div>
 
             <!-- Output Column -->
-            <div class="col-lg-7">
-                <h2 class="h4 mb-3"><i class="fas fa-file-alt"></i> Результат Генерации</h2>
-                <div class="d-grid gap-2 mb-3">
-                    <button id="generate-btn" class="btn btn-success btn-lg"><i class="fas fa-play"></i> Сгенерировать Правила</button>
+            <div class="col-lg-7 col-xl-8">
+                <div class="d-grid mb-2">
+                    <button id="generate-btn" class="btn btn-success"><i class="fas fa-play"></i> Сгенерировать</button>
                 </div>
                 <div class="position-relative">
-                    <pre id="generated-rules">Выберите генератор и настройте параметры слева.</pre>
-                    <button id="copy-rules-btn" class="btn btn-sm btn-light position-absolute top-0 end-0 m-2" title="Копировать правила" style="display: none;"><i class="fas fa-copy"></i></button>
+                    <pre id="generated-rules">Выберите тип правил и настройте параметры слева.</pre>
+                    <button id="copy-rules-btn" class="btn btn-sm btn-light position-absolute top-0 end-0 m-1 copy-btn-overlay" title="Копировать правила" style="display: none;"><i class="fas fa-copy"></i></button>
                 </div>
-                <div class="d-grid gap-2 mt-3">
-                    <button id="download-btn" class="btn btn-secondary" style="display: none;"><i class="fas fa-download"></i> Скачать .txt</button>
+                <div class="d-grid mt-2">
+                    <button id="download-btn" class="btn btn-secondary btn-sm" style="display: none;"><i class="fas fa-download"></i> Скачать .txt</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap JS Bundle (includes Popper) -->
+    <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-
-    <!-- Pako for compression (optional, for exporter) -->
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script> -->
 
     <!-- App Modules -->
     <script src="js/generatorRegistry.js"></script>
@@ -97,9 +114,8 @@
     <script src="js/ruleEngine.js"></script>
     <script src="js/exporter.js"></script>
 
-    <!-- Load Generator Definitions -->
+    <!-- Generator Definitions -->
     <script src="generators/chatRules_v1.js"></script>
-    <!-- Add other generator scripts here -->
 
     <!-- Main App Logic -->
     <script src="js/main.js"></script>

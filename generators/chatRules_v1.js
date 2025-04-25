@@ -31,12 +31,13 @@ const chatRulesGenerator_v1 = {
             title: 'Жесткость наказаний',
             icon: 'fas fa-shield-alt',
             type: 'single-choice-buttons',
+            dependsOn: { 'general.showModerationActions': true }, // Depends on the checkbox in the 'general' section
             options: [
-                { value: 'low', label: 'Низкая', icon: 'fas fa-thumbs-up', style: 'btn-outline-success' }, // Default? Add logic in UI/State
+                { value: 'low', label: 'Низкая', icon: 'fas fa-thumbs-up', style: 'btn-outline-success', default: true }, // Added default
                 { value: 'medium', label: 'Средняя', icon: 'fas fa-balance-scale', style: 'btn-outline-warning' },
                 { value: 'high', label: 'Высокая', icon: 'fas fa-skull-crossbones', style: 'btn-outline-danger' },
             ]
-            // TODO: Set default value (e.g., 'medium') in AppState initialization
+            // Default value is now handled by 'default: true' on the option and UI logic
         },
         // Можно добавить секцию для выбора конкретных наказаний (варн, мут, бан)
     ],
@@ -48,7 +49,7 @@ const chatRulesGenerator_v1 = {
             id: 'intro-main',
             name: 'Введение', // Name for the module toggle UI
             type: 'intro', // Special type for engine logic
-            conditions: { general: ['includeIntro'] }, // Зависит от чекбокса в секции general
+            conditions: { 'general.includeIntro': true }, // Check the specific option in the section
             defaultEnabled: true,
             textTemplate: `Добро пожаловать в наш чат!
 
@@ -60,7 +61,7 @@ const chatRulesGenerator_v1 = {
             id: 'notes-main',
             name: 'Примечания', // Name for the module toggle UI
             type: 'notes', // Special type for engine logic
-            conditions: { general: ['includeNotes'] },
+            conditions: { 'general.includeNotes': true },
             defaultEnabled: true,
             textTemplate: `{{subNotes}}`, // Плейсхолдер для вложенных примечаний
             // Определяем вложенные модули (каждый можно будет отключать)
@@ -81,7 +82,7 @@ const chatRulesGenerator_v1 = {
                     id: 'note-3',
                     name: 'Примечание 3 (Гибкость модерации)',
                     defaultEnabled: true,
-                    conditions: { general: ['showModerationActions'] }, // Показывать только если включены действия модерации
+                    conditions: { 'general.showModerationActions': true }, // Показывать только если включены действия модерации
                     textTemplate: `Действия модерации не фиксированы строго, несут рекомендательный характер и могут варьироваться в зависимости от конкретной ситуации и тяжести нарушения.`
                 },
                 {
@@ -94,7 +95,7 @@ const chatRulesGenerator_v1 = {
                     id: 'note-5',
                     name: 'Примечание 5 (Указание правила)',
                     defaultEnabled: true,
-                    conditions: { general: ['showModerationActions'] },
+                    conditions: { 'general.showModerationActions': true },
                     textTemplate: `При выдаче наказаний модерации рекомендуется указывать номер и/или название правила.`
                 }
             ]
@@ -130,7 +131,7 @@ const chatRulesGenerator_v1 = {
             name: 'Правило 4: Запрещенные медиа',
             type: 'main-rule',
             defaultEnabled: true,
-            conditions: { general: ['allow18plus', false] }, // Показываем это правило, ТОЛЬКО если 18+ ЗАПРЕЩЕН
+            conditions: { 'general.allow18plus': false }, // Показываем это правило, ТОЛЬКО если 18+ ЗАПРЕЩЕН
             textTemplate: `Запрещенные медиа: Запрещена отправка медиа со сценами жестокого насилия, вирусов, вредоносного ПО, экстремистского или любого другого опасного для здоровья контента.{{#if general.showModerationActions}}
    - Действия модерации: {{#case strictness}}{{#when low}}мут (1 день){{/when}}{{#when medium}}мут (1 день), немедленный бан (при рецидиве){{/when}}{{#when high}}немедленный бан{{/when}}{{/case}}.{{/if}}`
         },
@@ -139,7 +140,7 @@ const chatRulesGenerator_v1 = {
             name: 'Правило 4 (18+): Запрещенные медиа',
             type: 'main-rule',
             defaultEnabled: true,
-            conditions: { general: ['allow18plus', true] }, // Показываем это правило, ТОЛЬКО если 18+ РАЗРЕШЕН
+            conditions: { 'general.allow18plus': true }, // Показываем это правило, ТОЛЬКО если 18+ РАЗРЕШЕН
             textTemplate: `Запрещенные медиа (18+): Запрещена отправка медиа со сценами нелегального или чрезмерно жестокого контента (снафф, гуро и т.п.), вирусов, вредоносного ПО, экстремистских материалов. Контент 18+ должен быть помечен соответствующим образом (спойлер).{{#if general.showModerationActions}}
    - Действия модерации: {{#case strictness}}{{#when low}}мут (1 день){{/when}}{{#when medium}}мут (1 день), бан (при рецидиве){{/when}}{{#when high}}немедленный бан{{/when}}{{/case}}.{{/if}}`
         },
@@ -148,7 +149,7 @@ const chatRulesGenerator_v1 = {
             name: 'Правило 5: Реклама',
             type: 'main-rule',
             defaultEnabled: true,
-            conditions: { general: ['allowAds', false] }, // Показываем, если реклама ЗАПРЕЩЕНА
+            conditions: { 'general.allowAds': false }, // Показываем, если реклама ЗАПРЕЩЕНА
             textTemplate: `Реклама: Запрещена реклама любых ресурсов без согласования с администрацией. Это включает рекламу в личных сообщениях.{{#if general.showModerationActions}}
    - Действия модерации: {{#case strictness}}{{#when low}}варн, мут (12 часов){{/when}}{{#when medium}}варн, мут (24 часа), бан (при рецидиве){{/when}}{{#when high}}мут (2 дня), бан (при рецидиве){{/when}}{{/case}}.{{/if}}`
         },
@@ -157,7 +158,7 @@ const chatRulesGenerator_v1 = {
             name: 'Правило 5: Реклама (Разрешена)',
             type: 'main-rule',
             defaultEnabled: true,
-            conditions: { general: ['allowAds', true] }, // Показываем, если реклама РАЗРЕШЕНА
+            conditions: { 'general.allowAds': true }, // Показываем, если реклама РАЗРЕШЕНА
             textTemplate: `Реклама: Реклама разрешена только с явного согласия администрации и в специально отведенных для этого местах/времени (если таковые имеются). Несогласованная реклама, в том числе в ЛС, запрещена.{{#if general.showModerationActions}}
    - Действия модерации (за несогласованную рекламу): {{#case strictness}}{{#when low}}варн, мут (6 часов){{/when}}{{#when medium}}варн, мут (12 часов), бан (при рецидиве){{/when}}{{#when high}}мут (1 день), бан (при рецидиве){{/when}}{{/case}}.{{/if}}`
         },

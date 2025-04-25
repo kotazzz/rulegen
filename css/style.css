@@ -2,14 +2,38 @@
 
 body {
     background-color: #f8f9fa;
+    font-size: 0.95rem; /* Slightly smaller base font */
 }
 
 .container {
     max-width: 1200px; /* Wider container */
 }
 
+.container-fluid {
+    max-width: 1600px; /* Limit max width even for fluid */
+}
+
 .card {
     margin-bottom: 1rem;
+    width: 100% !important; /* Важно: сделать карточки на всю доступную ширину */
+}
+
+.card-compact {
+    margin-bottom: 0.75rem;
+    border: 1px solid #e9ecef;
+    box-shadow: none; /* Remove shadow for minimalism */
+}
+
+.card-compact .card-body {
+    padding: 0.75rem; /* Reduce padding */
+}
+
+.card-compact .card-header {
+    padding: 0.5rem 0.75rem;
+    font-weight: 600;
+    background-color: #f8f9fa; /* Lighter header */
+    border-bottom: 1px solid #e9ecef;
+    font-size: 0.9em;
 }
 
 .card-header {
@@ -17,8 +41,21 @@ body {
     background-color: rgba(0, 0, 0, 0.03);
 }
 
+.btn-group {
+    flex-wrap: wrap; /* Allow buttons to wrap */
+    width: 100% !important; /* Важно: фиксированная ширина группы кнопок */
+}
+
 .btn-group .btn {
-    flex-grow: 1;
+    flex: 1 1 auto; /* Allow buttons to grow/shrink but maintain equal width */
+    white-space: nowrap; /* Prevent button text from wrapping */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Show ellipsis if text too long */
+    min-width: 80px; /* Ensure minimal button width */
+}
+
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem; /* Smaller padding for buttons in advanced mode */
 }
 
 #generated-rules {
@@ -26,30 +63,40 @@ body {
     background-color: #fff;
     border: 1px solid #dee2e6;
     border-radius: 0.25rem;
-    padding: 15px;
-    min-height: 400px;
-    max-height: 70vh;
+    padding: 10px 15px; /* Reduced padding */
+    min-height: 300px;
+    max-height: 75vh; /* Allow slightly more height */
     overflow-y: auto;
     font-family: 'Courier New', Courier, monospace; /* Monospace for rules */
-    font-size: 0.9em;
+    font-size: 0.85em; /* Smaller font for rules */
     position: relative; /* Needed for copy button positioning */
 }
 
 .form-check {
-    margin-bottom: 0.75rem;
-    background-color: #fff;
-    padding: 0.5rem 0.75rem 0.5rem 2.25rem; /* More padding */
-    border: 1px solid #eee;
-    border-radius: 0.25rem;
+    margin-bottom: 0.5rem;
+    background-color: transparent; /* Remove background */
+    padding: 0.4rem 0.6rem 0.4rem 2rem; /* More padding */
+    border: none; /* Remove border */
     transition: background-color 0.2s ease-in-out;
 }
 
+.modules-list-container .form-check {
+     padding: 0.4rem 0.6rem 0.4rem 2rem;
+     border-bottom: 1px solid #eee; /* Separator line */
+     margin-bottom: 0;
+     border-radius: 0;
+}
+
+.modules-list-container .form-check:last-child {
+    border-bottom: none;
+}
+
 .form-check:hover {
-    background-color: #f8f9fa;
+    background-color: #f1f3f5;
 }
 
 .form-check-input {
-    margin-top: 0.4em; /* Align checkbox better */
+    margin-top: 0.3em; /* Align checkbox better */
 }
 
 .form-check label {
@@ -62,13 +109,30 @@ body {
 }
 
 /* Style for depends-on disabled elements */
-.option-disabled {
-    opacity: 0.5;
+.disabled-by-dependency {
+    opacity: 0.6;
     pointer-events: none;
+    background-color: #f8f9fa; /* Light gray background */
+    border: 1px dashed #ced4da !important; /* Dashed border */
+    position: relative; /* For tooltip positioning */
 }
 
-.option-disabled .form-check-label {
-    text-decoration: line-through;
+.disabled-by-dependency::after {
+    content: "🔒"; /* Lock emoji */
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 12px;
+}
+
+/* Override form-check disabled style */
+.form-check.disabled-by-dependency {
+    border: none !important;
+}
+
+.form-check.disabled-by-dependency .form-check-label {
+    color: #6c757d;
+    opacity: 0.8;
 }
 
 #copy-rules-btn {
@@ -78,4 +142,94 @@ body {
 
 #copy-rules-btn:hover {
     opacity: 1;
+}
+
+/* Smaller nav pills */
+.small-nav .nav-link {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85em;
+}
+
+/* Flow container for options - ИЗМЕНЕНО: убираем columns */
+.options-flow-container {
+    padding-top: 0.5rem;
+}
+
+/* Adjust column count for smaller screens */
+@media (max-width: 1200px) {
+    .options-flow-container {
+        column-count: 1;
+    }
+}
+
+/* Container for modules list */
+.modules-list-container {
+    max-height: 65vh; /* Limit height and allow scroll */
+    overflow-y: auto;
+    padding: 0.5rem;
+    background-color: #fff; /* White background for the list */
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+
+/* Copy button overlay */
+.copy-btn-overlay {
+    opacity: 0.5;
+    transition: opacity 0.2s ease-in-out;
+    background-color: rgba(255, 255, 255, 0.7);
+}
+
+.copy-btn-overlay:hover {
+    opacity: 1;
+}
+
+/* Advanced mode styling */
+.advanced-settings {
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
+}
+
+.rule-advanced-settings {
+    padding: 0.5rem;
+    background-color: white;
+    border-radius: 0.25rem;
+    margin-top: 0.5rem;
+}
+
+.rule-advanced-settings:last-child {
+    border-bottom: none !important;
+}
+
+.advanced-settings-detail {
+    background-color: #f8f9fa;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    border-radius: 0.25rem;
+    margin-left: 1rem !important;
+}
+
+.regular-modules {
+    background-color: white;
+}
+
+/* Module container styling */
+.module-container {
+    margin-bottom: 0.25rem;
+    padding: 0.4rem 0.6rem 0.4rem 2rem;
+    border-radius: 0.25rem;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.module-container:hover {
+    background-color: #f1f3f5;
+}
+
+/* Form switch styling */
+.form-switch .form-check-input {
+    width: 2.5em; /* Larger toggle switch */
+}
+
+/* Стили для тултипов - убедимся что они правильно пропадают */
+.tooltip {
+    pointer-events: none !important;
 }

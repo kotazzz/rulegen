@@ -8,39 +8,107 @@ const AppState = {
 
     setCurrentGenerator(generatorId) {
         this.currentGeneratorId = generatorId;
-        this.selectedOptions = {}; // Reset options when generator changes
-        this.ruleModuleStates = {}; // Reset module states
-        // TODO: Initialize options and modules with defaults from the new generator
+        const generator = GeneratorRegistry.getGenerator(generatorId);
+        
+        if (generator) {
+            // Initialize options with defaults from generator definitions
+            this.initializeOptionsFromGenerator(generator);
+            this.initializeModulesFromGenerator(generator);
+        } else {
+            // Reset options when generator changes
+            this.selectedOptions = {}; 
+            this.ruleModuleStates = {};
+        }
+        
         console.log(`Current generator set to: ${generatorId}`);
     },
 
-    updateOption(sectionId, optionValue) {
-        if (!this.selectedOptions[sectionId]) {
-            this.selectedOptions[sectionId] = {};
+    // New method to initialize options from generator defaults
+    initializeOptionsFromGenerator(generator) {
+        // Start with a clean slate
+        this.selectedOptions = {};
+        
+        // Initialize each section's options
+        if (generator.sections) {
+            generator.sections.forEach(section => {
+                switch(section.type) {
+                    case 'single-choice-buttons':
+                        // For single-choice options, find default or use first
+                        const defaultButtonOption = section.options.find(opt => opt.default);
+                        if (defaultButtonOption) {
+                            this.selectedOptions[section.id] = defaultButtonOption.value;
+                        } else if (section.options.length > 0) {
+                            this.selectedOptions[section.id] = section.options[0].value;
+                        }
+                        break;
+                        
+                    case 'multi-choice-checkboxes':
+                        // For checkboxes, initialize an array with all checked options
+                        this.selectedOptions[section.id] = [];
+                        section.options.forEach(opt => {
+                            if (opt.checked) {
+                                this.selectedOptions[section.id].push(opt.value);
+                            }
+                        });
+                        break;
+                        
+                    // Add cases for other section types
+                }
+            });
         }
-        // Assuming single choice for now, adapt for multi-choice later
+        
+        console.log('Options initialized from generator defaults:', this.selectedOptions);
+    },
+    
+    // New method to initialize module states from generator defaults
+    initializeModulesFromGenerator(generator) {
+        this.ruleModuleStates = {};
+        
+        if (generator.ruleModules) {
+            generator.ruleModules.forEach(module => {
+                // Set default state from module definition
+                this.ruleModuleStates[module.id] = module.defaultEnabled !== undefined ? module.defaultEnabled : true;
+                
+                // Also handle sub-modules if present
+                if (module.subModules) {
+                    module.subModules.forEach(subModule => {
+                        this.ruleModuleStates[subModule.id] = subModule.defaultEnabled !== undefined ? subModule.defaultEnabled : true;
+                    });
+                }
+            });
+        }
+        
+        console.log('Module states initialized from generator defaults:', this.ruleModuleStates);
+    },
+
+    updateOption(sectionId, optionValue) {
+        // For single-choice sections
         this.selectedOptions[sectionId] = optionValue;
         console.log('State updated - selectedOptions:', JSON.stringify(this.selectedOptions));
-        // TODO: Trigger UI updates or dependency checks
+        // UI updates or dependency checks are handled elsewhere
     },
 
     updateMultiOption(sectionId, optionValue, isSelected) {
         if (!this.selectedOptions[sectionId]) {
             this.selectedOptions[sectionId] = [];
         }
+        
         const currentValues = this.selectedOptions[sectionId];
+        
         if (isSelected) {
+            // Add to array if not already included
             if (!currentValues.includes(optionValue)) {
                 currentValues.push(optionValue);
             }
         } else {
+            // Remove from array
             const index = currentValues.indexOf(optionValue);
             if (index > -1) {
                 currentValues.splice(index, 1);
             }
         }
+        
         console.log('State updated - selectedOptions:', JSON.stringify(this.selectedOptions));
-         // TODO: Trigger UI updates or dependency checks
     },
 
     updateRuleModuleState(moduleId, isEnabled) {
@@ -72,14 +140,32 @@ const AppState = {
             modules: JSON.parse(JSON.stringify(this.ruleModuleStates))  // Deep copy
         };
         console.log(`Preset '${name}' saved.`);
-        // TODO: Persist presets (e.g., localStorage)
-        // TODO: Update preset UI dropdown
+        
+        // Save to localStorage for persistence
+        try {
+            localStorage.setItem('rulegen_presets', JSON.stringify(this.presets));
+        } catch (e) {
+            console.warn("Failed to save presets to localStorage:", e);
+        }
+        
         return true;
     },
 
     getPresets() {
+        // If presets are empty, try to load from localStorage
+        if (Object.keys(this.presets).length === 0) {
+            try {
+                const savedPresets = localStorage.getItem('rulegen_presets');
+                if (savedPresets) {
+                    this.presets = JSON.parse(savedPresets);
+                    console.log("Loaded presets from localStorage");
+                }
+            } catch (e) {
+                console.warn("Failed to load presets from localStorage:", e);
+            }
+        }
+        
         return this.presets;
-        // TODO: Load presets from persistence
     },
 
     // --- Settings Import/Export ---
