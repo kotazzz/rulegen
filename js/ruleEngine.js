@@ -237,8 +237,8 @@ const RuleEngine = {
                         contentEndIndex = caseContent.length; 
                     }
 
-                    // Extract the content specific to this 'when' block
-                    const contentWhen = caseContent.substring(contentStartIndex, contentEndIndex);
+                    // Extract the content specific to this 'when' block AND TRIM IT
+                    const contentWhen = caseContent.substring(contentStartIndex, contentEndIndex).trim(); // <-- Added .trim() here
                     
                     // Recursively format the extracted content
                     // Pass moduleId down for potential nested overrides (though unlikely in #when)

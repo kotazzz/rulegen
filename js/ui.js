@@ -16,7 +16,6 @@ const UI = {
     exportSettingsBtn: document.getElementById('export-settings-btn'),
     // New UI elements for advanced mode
     advancedModeToggle: null, // Will be created dynamically
-    hideAdvancedBtn: null, // Will be created dynamically
     
     init() {
         this.populateGeneratorSelect();
@@ -77,84 +76,55 @@ const UI = {
     },
 
     renderAdvancedModeControls() {
-        // Add advanced mode toggle at the top of the modules container
+        // Container for the switch
         const advancedModeContainer = document.createElement('div');
         advancedModeContainer.className = 'card mb-3';
-        
         const cardBody = document.createElement('div');
-        cardBody.className = 'card-body py-2'; // Smaller padding
-        
-        // Create toggle for advanced mode
+        cardBody.className = 'card-body py-2';
+
+        // Create toggle switch for advanced mode
         this.advancedModeToggle = document.createElement('div');
-        this.advancedModeToggle.className = 'form-check form-switch mb-2';
-        
+        this.advancedModeToggle.className = 'form-check form-switch'; // Removed mb-2
+
         const advancedModeCheckbox = document.createElement('input');
         advancedModeCheckbox.className = 'form-check-input';
         advancedModeCheckbox.type = 'checkbox';
         advancedModeCheckbox.id = 'advanced-mode-toggle';
-        advancedModeCheckbox.checked = AppState.selectedOptions.advancedMode === true;
-        
+        // Ensure state is read correctly, default to false if undefined
+        advancedModeCheckbox.checked = AppState.selectedOptions.advancedMode === true; 
+
         const advancedModeLabel = document.createElement('label');
         advancedModeLabel.className = 'form-check-label';
         advancedModeLabel.htmlFor = 'advanced-mode-toggle';
         advancedModeLabel.textContent = 'Расширенный режим';
-        
+
         this.advancedModeToggle.appendChild(advancedModeCheckbox);
         this.advancedModeToggle.appendChild(advancedModeLabel);
-        
-        // Create button to show/hide advanced settings
-        this.hideAdvancedBtn = document.createElement('button');
-        this.hideAdvancedBtn.className = 'btn btn-sm btn-outline-secondary w-100';
-        this.hideAdvancedBtn.innerHTML = '<i class="fas fa-eye-slash"></i> Скрыть дополнительные настройки';
-        this.hideAdvancedBtn.style.display = advancedModeCheckbox.checked ? 'block' : 'none';
-        
-        // Events
+
+        // Event Listener for the toggle switch
         advancedModeCheckbox.addEventListener('change', (e) => {
             const isAdvanced = e.target.checked;
             AppState.selectedOptions.advancedMode = isAdvanced;
-            
-            // Show/hide per-rule settings
+
+            // Toggle visibility of integrated advanced settings
             this.toggleAdvancedModeVisibility(isAdvanced);
-            
-            // Show/hide hide button
-            this.hideAdvancedBtn.style.display = isAdvanced ? 'block' : 'none';
-            
-            // Уничтожаем все тултипы при переключении режима
+
+            // Destroy and reapply tooltips/dependencies
             this.destroyAllTooltips();
-            // Re-apply dependencies as visibility changes might affect them
-            this.checkAndApplyDependencies(); 
+            this.checkAndApplyDependencies();
         });
-        
-        this.hideAdvancedBtn.addEventListener('click', () => {
-            const btn = this.hideAdvancedBtn;
-            const isHidden = btn.dataset.hidden === 'true';
-            
-            this.toggleAdvancedSettingsVisibility(!isHidden);
-            
-            // Update button text
-            btn.innerHTML = isHidden ? 
-                '<i class="fas fa-eye-slash"></i> Скрыть дополнительные настройки' : 
-                '<i class="fas fa-eye"></i> Показать дополнительные настройки';
-            btn.dataset.hidden = isHidden ? 'false' : 'true';
-            
-            // Уничтожаем все тултипы при изменении видимости
-            this.destroyAllTooltips();
-            // Re-apply dependencies
-            this.checkAndApplyDependencies(); 
-        });
-        
+
         cardBody.appendChild(this.advancedModeToggle);
-        cardBody.appendChild(this.hideAdvancedBtn);
         advancedModeContainer.appendChild(cardBody);
-        
-        // Insert at the top of the modules container
+
+        // Insert the switch container at the top of the modules list
         if (this.modulesContainer.firstChild) {
             this.modulesContainer.insertBefore(advancedModeContainer, this.modulesContainer.firstChild);
         } else {
             this.modulesContainer.appendChild(advancedModeContainer);
         }
-        
-        // Initial state
+
+        // Apply initial visibility based on state
         this.toggleAdvancedModeVisibility(advancedModeCheckbox.checked);
     },
     
@@ -171,31 +141,16 @@ const UI = {
     },
     
     toggleAdvancedModeVisibility(isVisible) {
-        // Show/hide all advanced settings containers
-        document.querySelectorAll('.advanced-settings').forEach(el => {
-            el.style.display = isVisible ? 'block' : 'none';
-        });
-        
-        // Show/hide regular modules based on advanced mode
-        document.querySelectorAll('.regular-modules').forEach(el => {
-            el.style.display = isVisible ? 'none' : 'block';
-        });
-        
-        // Make sure all tooltips are destroyed when switching modes
-        this.destroyAllTooltips();
-        // Re-apply dependencies after toggling visibility
-        this.checkAndApplyDependencies();
-    },
-    
-    toggleAdvancedSettingsVisibility(isVisible) {
-        // Show/hide individual advanced settings within containers
-        document.querySelectorAll('.advanced-setting-item').forEach(el => {
+        // Toggle visibility of all integrated advanced settings containers
+        document.querySelectorAll('.advanced-module-settings').forEach(el => {
             el.style.display = isVisible ? 'block' : 'none';
         });
 
-        // Уничтожаем тултипы при изменении видимости
+        // No need to toggle .regular-modules or .advanced-settings anymore
+
+        // Destroy tooltips as visibility changes might affect positioning/existence
         this.destroyAllTooltips();
-        // Re-apply dependencies
+        // Re-apply dependencies might be needed if visibility affects layout significantly
         this.checkAndApplyDependencies();
     },
     
@@ -341,39 +296,40 @@ const UI = {
     },
 
     renderRuleModules(generator) {
-        // Destroy tooltips before clearing
         this.destroyAllTooltips();
-        this.modulesContainer.innerHTML = ''; // Clear previous modules
+        // Clear only the modules, not the advanced switch container if it exists
+        const modulesContent = this.modulesContainer.querySelectorAll('.module-container, .regular-modules, .advanced-settings'); // Select old containers too for cleanup
+        modulesContent.forEach(el => el.remove());
+
         if (!generator.ruleModules || generator.ruleModules.length === 0) {
-            this.modulesContainer.innerHTML = '<p class="text-muted">Модули правил не определены для этого генератора.</p>';
+            const placeholder = document.createElement('p');
+            placeholder.className = 'text-muted p-2';
+            placeholder.textContent = 'Модули правил не определены для этого генератора.';
+            this.modulesContainer.appendChild(placeholder);
             return;
         }
 
-        // Create container for regular modules
-        const mainModulesContainer = document.createElement('div');
-        mainModulesContainer.className = 'regular-modules mb-3 border rounded p-2';
-        
-        const mainModulesTitle = document.createElement('div');
-        mainModulesTitle.className = 'mb-2 fw-bold';
-        mainModulesTitle.textContent = 'Основные Модули';
-        mainModulesContainer.appendChild(mainModulesTitle);
+        // Render modules directly into the modulesContainer
+        generator.ruleModules
+            // .filter(m => !m.isAdvanced) // No longer filter, show all
+            .forEach(module => {
+                const moduleElement = this.createModuleElement(module); // Will now include advanced settings container if applicable
+                this.modulesContainer.appendChild(moduleElement);
+            });
 
-        // Render regular modules - removed duplicate call to renderAdvancedModeControls
-        generator.ruleModules.filter(m => !m.isAdvanced).forEach(module => {
-            const moduleElement = this.createModuleElement(module);
-            mainModulesContainer.appendChild(moduleElement);
-        });
-        
-        this.modulesContainer.appendChild(mainModulesContainer);
-
-        // Initialize advanced settings containers for each rule that supports it
-        this.createAdvancedRuleSettings(generator);
+        // REMOVE call to createAdvancedRuleSettings
+        // Apply initial visibility for advanced settings based on current mode
+        this.toggleAdvancedModeVisibility(AppState.selectedOptions.advancedMode === true);
     },
     
     createModuleElement(module) {
         const div = document.createElement('div');
-        div.className = 'form-check module-container';
+        div.className = 'module-container'; // Removed form-check, added border/margin in CSS
         div.dataset.moduleId = module.id;
+
+        // --- Checkbox and Label ---
+        const checkLabelContainer = document.createElement('div');
+        checkLabelContainer.className = 'form-check'; // Keep form-check structure for checkbox+label part
 
         const input = document.createElement('input');
         input.className = 'form-check-input rule-module-toggle';
@@ -381,16 +337,12 @@ const UI = {
         input.value = module.id;
         input.id = `module-${module.id}`;
 
-        // Get state from AppState or use default
-        const isEnabled = AppState.ruleModuleStates[module.id] !== undefined 
-            ? AppState.ruleModuleStates[module.id] 
+        const isEnabled = AppState.ruleModuleStates[module.id] !== undefined
+            ? AppState.ruleModuleStates[module.id]
             : (module.defaultEnabled !== undefined ? module.defaultEnabled : true);
-        
-        // Update AppState if needed
         if (AppState.ruleModuleStates[module.id] === undefined) {
             AppState.updateRuleModuleState(module.id, isEnabled);
         }
-        
         input.checked = isEnabled;
 
         const label = document.createElement('label');
@@ -398,248 +350,201 @@ const UI = {
         label.htmlFor = input.id;
         label.textContent = module.name || `Модуль: ${module.id}`;
 
-        // Add tooltip with dependency info
-        if (module.conditions) {
-            let tooltip = '';
-            for (const key in module.conditions) {
-                if (key.includes('.')) {
-                    const [section, option] = key.split('.');
-                    tooltip += `Зависит от: "${option}" в разделе "${section}"\n`;
-                }
-            }
-            if (tooltip) {
-                label.title = tooltip;
-                label.dataset.bsToggle = 'tooltip';
-                label.dataset.bsPlacement = 'right';
-            }
-        }
+        checkLabelContainer.appendChild(input);
+        checkLabelContainer.appendChild(label);
+        // Dependency icon will be added later if needed next to the label
 
-        // Add dependsOn attribute for dependency checking
+        div.appendChild(checkLabelContainer); // Add checkbox+label part
+
+        // --- Dependency Attribute ---
         if (module.conditions) {
             div.dataset.dependsOn = JSON.stringify(module.conditions);
         }
 
+        // --- Event Listener for Module Toggle ---
         input.addEventListener('change', (e) => {
             AppState.updateRuleModuleState(module.id, e.target.checked);
-            // Check dependencies after state change
             this.checkAndApplyDependencies();
         });
 
-        div.appendChild(input);
-        div.appendChild(label);
-        return div;
-    },
-    
-    createAdvancedRuleSettings(generator) {
-        // Create container for advanced settings (initially hidden)
-        const advancedContainer = document.createElement('div');
-        advancedContainer.className = 'advanced-settings mt-3 border rounded p-2';
-        advancedContainer.style.display = AppState.selectedOptions.advancedMode === true ? 'block' : 'none';
-        
-        const advancedTitle = document.createElement('div');
-        advancedTitle.className = 'mb-2 fw-bold';
-        advancedTitle.textContent = 'Расширенные Настройки Правил';
-        advancedContainer.appendChild(advancedTitle);
-        
-        // Add advanced settings for each main rule
-        const mainRules = generator.ruleModules.filter(m => 
-            m.type === 'main-rule' && 
-            m.textTemplate && 
-            m.textTemplate.includes('{{#if general.showModerationActions}}')
-        );
-        
-        if (mainRules.length === 0) {
-            const noSettings = document.createElement('div');
-            noSettings.className = 'text-muted small';
-            noSettings.textContent = 'Нет правил с расширенными настройками';
-            advancedContainer.appendChild(noSettings);
-        } else {
-            mainRules.forEach(rule => {
-                const ruleSettings = this.createRuleAdvancedSettings(rule);
-                advancedContainer.appendChild(ruleSettings);
-            });
-        }
-        
-        this.modulesContainer.appendChild(advancedContainer);
-    },
-    
-    createRuleAdvancedSettings(rule) {
-        // Create container for this rule's settings
-        const container = document.createElement('div');
-        container.className = 'rule-advanced-settings mb-2 pb-2 border-bottom';
-        container.dataset.ruleId = rule.id;
-        
-        // Rule title
-        const title = document.createElement('div');
-        title.className = 'mb-1 fw-bold';
-        title.textContent = rule.name;
-        container.appendChild(title);
-        
-        // Override global settings option
-        const overrideContainer = document.createElement('div');
-        overrideContainer.className = 'form-check mb-2 advanced-setting-item';
-        
-        const overrideInput = document.createElement('input');
-        overrideInput.className = 'form-check-input';
-        overrideInput.type = 'checkbox';
-        overrideInput.id = `override-${rule.id}`;
-        
-        // Get state from AppState or initialize
-        const ruleSettings = AppState.selectedOptions.ruleSettings || {};
-        const thisRuleSettings = ruleSettings[rule.id] || {};
-        
-        overrideInput.checked = thisRuleSettings.override === true;
-        
-        const overrideLabel = document.createElement('label');
-        overrideLabel.className = 'form-check-label';
-        overrideLabel.htmlFor = overrideInput.id;
-        overrideLabel.textContent = 'Переопределить глобальные настройки';
-        
-        overrideContainer.appendChild(overrideInput);
-        overrideContainer.appendChild(overrideLabel);
-        container.appendChild(overrideContainer);
-        
-        // Settings that become visible when override is checked
-        const settingsContainer = document.createElement('div');
-        settingsContainer.className = 'ps-4 advanced-settings-detail';
-        settingsContainer.style.display = overrideInput.checked ? 'block' : 'none';
-        
-        // 1. Show moderation actions checkbox
-        const showActions = document.createElement('div');
-        showActions.className = 'form-check mb-2 advanced-setting-item';
-        
-        const showActionsInput = document.createElement('input');
-        showActionsInput.className = 'form-check-input';
-        showActionsInput.type = 'checkbox';
-        showActionsInput.id = `show-actions-${rule.id}`;
-        showActionsInput.checked = thisRuleSettings.showActions !== false; // Default to true
-        
-        const showActionsLabel = document.createElement('label');
-        showActionsLabel.className = 'form-check-label';
-        showActionsLabel.htmlFor = showActionsInput.id;
-        showActionsLabel.textContent = 'Показывать действия модерации';
-        
-        showActions.appendChild(showActionsInput);
-        showActions.appendChild(showActionsLabel);
-        settingsContainer.appendChild(showActions);
-        
-        // 2. Strictness settings (if rule uses strictness levels)
-        if (rule.textTemplate.includes('{{#case strictness}}')) {
-            const strictnessContainer = document.createElement('div');
-            strictnessContainer.className = 'mb-2 advanced-setting-item strictness-container';
-            strictnessContainer.dataset.dependsOnAction = 'true'; // Маркер зависимости от showActions
-            
-            const strictnessLabel = document.createElement('div');
-            strictnessLabel.className = 'mb-1 small';
-            strictnessLabel.textContent = 'Жесткость наказаний:';
-            strictnessContainer.appendChild(strictnessLabel);
-            
-            const btnGroup = document.createElement('div');
-            btnGroup.className = 'btn-group btn-group-sm w-100';
-            
-            // Add buttons for each strictness level
-            const levels = [
-                { value: 'low', label: 'Низкая', style: 'btn-outline-success' },
-                { value: 'medium', label: 'Средняя', style: 'btn-outline-warning' },
-                { value: 'high', label: 'Высокая', style: 'btn-outline-danger' }
-            ];
-            
-            // Current value from settings or global default
-            const currentValue = thisRuleSettings.strictness || AppState.selectedOptions.strictness || 'low';
-            
-            levels.forEach(level => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = `btn ${level.value === currentValue ? level.style.replace('outline-', '') : level.style}`;
-                btn.textContent = level.label;
-                btn.dataset.value = level.value;
-                btn.dataset.style = level.style;
-                
-                if (level.value === currentValue) {
-                    btn.classList.add('active');
-                }
-                
-                btn.addEventListener('click', e => {
-                    // Update UI
-                    btnGroup.querySelectorAll('button').forEach(b => {
-                        const style = b.dataset.style;
-                        b.classList.remove('active', style.replace('outline-', ''));
-                        b.classList.add(style);
-                    });
-                    
-                    btn.classList.remove(btn.dataset.style);
-                    btn.classList.add('active', btn.dataset.style.replace('outline-', ''));
-                    
-                    // Update state
-                    if (!ruleSettings[rule.id]) ruleSettings[rule.id] = {};
-                    ruleSettings[rule.id].strictness = btn.dataset.value;
+        // --- Integrated Advanced Settings (if applicable) ---
+        const canHaveAdvancedSettings = module.type === 'main-rule' && module.textTemplate &&
+                                       (module.textTemplate.includes('{{#if general.showModerationActions}}') || module.textTemplate.includes('{{#case strictness}}'));
+
+        if (canHaveAdvancedSettings) {
+            const advancedSettingsContainer = document.createElement('div');
+            advancedSettingsContainer.className = 'advanced-module-settings';
+            // Initially hidden, visibility controlled by toggleAdvancedModeVisibility
+            advancedSettingsContainer.style.display = AppState.selectedOptions.advancedMode === true ? 'block' : 'none';
+
+            const ruleSettings = AppState.selectedOptions.ruleSettings || {};
+            const thisRuleSettings = ruleSettings[module.id] || {};
+
+            // 1. Override Checkbox
+            const overrideContainer = document.createElement('div');
+            overrideContainer.className = 'form-check mb-2'; // Removed advanced-setting-item
+
+            const overrideInput = document.createElement('input');
+            overrideInput.className = 'form-check-input';
+            overrideInput.type = 'checkbox';
+            overrideInput.id = `override-${module.id}`;
+            overrideInput.checked = thisRuleSettings.override === true;
+
+            const overrideLabel = document.createElement('label');
+            overrideLabel.className = 'form-check-label small'; // Make label smaller
+            overrideLabel.htmlFor = overrideInput.id;
+            overrideLabel.textContent = 'Переопределить глобальные настройки для этого правила';
+
+            overrideContainer.appendChild(overrideInput);
+            overrideContainer.appendChild(overrideLabel);
+            advancedSettingsContainer.appendChild(overrideContainer);
+
+            // Container for settings dependent on override
+            const overrideDependentSettings = document.createElement('div');
+            overrideDependentSettings.className = 'ps-3'; // Indent override-dependent settings
+            overrideDependentSettings.style.display = overrideInput.checked ? 'block' : 'none';
+
+            // 2. Show Actions Checkbox (if applicable)
+            if (module.textTemplate.includes('{{#if general.showModerationActions}}')) {
+                const showActionsContainer = document.createElement('div');
+                showActionsContainer.className = 'form-check mb-2'; // Removed advanced-setting-item
+
+                const showActionsInput = document.createElement('input');
+                showActionsInput.className = 'form-check-input';
+                showActionsInput.type = 'checkbox';
+                showActionsInput.id = `show-actions-${module.id}`;
+                // Default to true if override is on but showActions is undefined in state
+                showActionsInput.checked = thisRuleSettings.override ? (thisRuleSettings.showActions !== false) : (AppState.selectedOptions.general?.includes('showModerationActions'));
+
+
+                const showActionsLabel = document.createElement('label');
+                showActionsLabel.className = 'form-check-label small';
+                showActionsLabel.htmlFor = showActionsInput.id;
+                showActionsLabel.textContent = 'Показывать действия модерации';
+
+                showActionsContainer.appendChild(showActionsInput);
+                showActionsContainer.appendChild(showActionsLabel);
+                overrideDependentSettings.appendChild(showActionsContainer);
+
+                 // Event for show actions toggle
+                showActionsInput.addEventListener('change', e => {
+                    const show = e.target.checked;
+                    if (!ruleSettings[module.id]) ruleSettings[module.id] = {};
+                    ruleSettings[module.id].showActions = show;
                     AppState.selectedOptions.ruleSettings = ruleSettings;
+
+                    // Toggle strictness container based on show actions
+                    const strictnessContainer = advancedSettingsContainer.querySelector('.strictness-container');
+                    if (strictnessContainer) {
+                        const isDisabled = !show;
+                        strictnessContainer.classList.toggle('disabled-by-dependency', isDisabled);
+                        strictnessContainer.querySelectorAll('button').forEach(btn => btn.disabled = isDisabled);
+                    }
+                    this.destroyAllTooltips(); // Destroy tooltips on change
+                    this.checkAndApplyDependencies(); // Recheck dependencies
                 });
-                
-                btnGroup.appendChild(btn);
-            });
-            
-            strictnessContainer.appendChild(btnGroup);
-            settingsContainer.appendChild(strictnessContainer);
-            
-            // Disable strictness if actions not shown
-            if (!showActionsInput.checked) {
-                strictnessContainer.classList.add('disabled-by-dependency');
-                strictnessContainer.querySelectorAll('button').forEach(btn => btn.disabled = true);
             }
-        }
-        
-        // Event for override toggle
-        overrideInput.addEventListener('change', e => {
-            const isOverride = e.target.checked;
-            settingsContainer.style.display = isOverride ? 'block' : 'none';
-            
-            // Update state
-            if (!ruleSettings[rule.id]) ruleSettings[rule.id] = {};
-            ruleSettings[rule.id].override = isOverride;
-            AppState.selectedOptions.ruleSettings = ruleSettings;
-            
-            // If turning off override, remove custom settings
-            if (!isOverride) {
-                delete ruleSettings[rule.id].strictness;
-                delete ruleSettings[rule.id].showActions;
+
+            // 3. Strictness Buttons (if applicable)
+            if (module.textTemplate.includes('{{#case strictness}}')) {
+                const strictnessContainer = document.createElement('div');
+                strictnessContainer.className = 'strictness-container'; // Removed mb-2, advanced-setting-item
+                // strictnessContainer.dataset.dependsOnAction = 'true'; // Dependency handled by event listener now
+
+                const strictnessLabel = document.createElement('div');
+                strictnessLabel.className = 'mb-1 small';
+                strictnessLabel.textContent = 'Жесткость наказаний:';
+                strictnessContainer.appendChild(strictnessLabel);
+
+                const btnGroup = document.createElement('div');
+                btnGroup.className = 'btn-group btn-group-sm w-100';
+
+                const levels = [
+                    { value: 'low', label: 'Низкая', style: 'btn-outline-success' },
+                    { value: 'medium', label: 'Средняя', style: 'btn-outline-warning' },
+                    { value: 'high', label: 'Высокая', style: 'btn-outline-danger' }
+                ];
+
+                // Determine current value: rule setting -> global setting -> default 'low'
+                const globalStrictness = AppState.selectedOptions.strictness || 'low';
+                const currentStrictnessValue = thisRuleSettings.strictness || globalStrictness;
+                const showActionsCurrently = thisRuleSettings.override ? (thisRuleSettings.showActions !== false) : (AppState.selectedOptions.general?.includes('showModerationActions'));
+
+
+                levels.forEach(level => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    const isActive = level.value === currentStrictnessValue;
+                    btn.className = `btn ${isActive ? level.style.replace('outline-', '') : level.style}`;
+                    if(isActive) btn.classList.add('active');
+                    btn.textContent = level.label;
+                    btn.dataset.value = level.value;
+                    btn.dataset.style = level.style;
+                    btn.disabled = !showActionsCurrently; // Disable if showActions is off
+
+                    btn.addEventListener('click', e => {
+                        if (btn.disabled) return;
+                        const selectedStrictness = btn.dataset.value;
+                        // Update UI
+                        btnGroup.querySelectorAll('button').forEach(b => {
+                            const style = b.dataset.style;
+                            b.classList.remove('active', style.replace('outline-', ''));
+                            if (!b.classList.contains(style)) b.classList.add(style);
+                        });
+                        btn.classList.remove(btn.dataset.style);
+                        btn.classList.add('active', btn.dataset.style.replace('outline-', ''));
+
+                        // Update state
+                        if (!ruleSettings[module.id]) ruleSettings[module.id] = {};
+                        ruleSettings[module.id].strictness = selectedStrictness;
+                        AppState.selectedOptions.ruleSettings = ruleSettings;
+                    });
+                    btnGroup.appendChild(btn);
+                });
+
+                strictnessContainer.appendChild(btnGroup);
+                overrideDependentSettings.appendChild(strictnessContainer);
+
+                 // Initial disabled state for strictness
+                 if (!showActionsCurrently) {
+                     strictnessContainer.classList.add('disabled-by-dependency');
+                 }
             }
-            
-            // Уничтожаем тултипы при изменении видимости
-            this.destroyAllTooltips();
-            // Re-apply dependencies
-            this.checkAndApplyDependencies();
-        });
-        
-        // Event for show actions toggle
-        showActionsInput.addEventListener('change', e => {
-            const showActions = e.target.checked;
-            
-            // Update state
-            if (!ruleSettings[rule.id]) ruleSettings[rule.id] = {};
-            ruleSettings[rule.id].showActions = showActions;
-            AppState.selectedOptions.ruleSettings = ruleSettings;
-            
-            // Toggle strictness container based on show actions
-            const strictnessContainer = settingsContainer.querySelector('.strictness-container');
-            if (strictnessContainer) {
-                if (showActions) {
-                    strictnessContainer.classList.remove('disabled-by-dependency');
-                    strictnessContainer.querySelectorAll('button').forEach(btn => btn.disabled = false);
+
+            advancedSettingsContainer.appendChild(overrideDependentSettings);
+
+            // Event for override toggle
+            overrideInput.addEventListener('change', e => {
+                const isOverride = e.target.checked;
+                overrideDependentSettings.style.display = isOverride ? 'block' : 'none';
+
+                if (!ruleSettings[module.id]) ruleSettings[module.id] = {};
+                ruleSettings[module.id].override = isOverride;
+
+                if (!isOverride) {
+                    // Clear specific settings when override is turned off
+                    delete ruleSettings[module.id].strictness;
+                    delete ruleSettings[module.id].showActions;
                 } else {
-                    strictnessContainer.classList.add('disabled-by-dependency');
-                    strictnessContainer.querySelectorAll('button').forEach(btn => btn.disabled = true);
+                     // When turning ON, ensure defaults are set if not present
+                     const showActionsInput = advancedSettingsContainer.querySelector(`#show-actions-${module.id}`);
+                     if (showActionsInput && ruleSettings[module.id].showActions === undefined) {
+                         ruleSettings[module.id].showActions = true; // Default to true when enabling override
+                         showActionsInput.checked = true;
+                     }
+                     // Strictness will default to global or 'low' if not set
                 }
-            }
-            
-            // Уничтожаем тултипы при изменении состояния
-            this.destroyAllTooltips();
-            // Re-apply dependencies
-            this.checkAndApplyDependencies();
-        });
-        
-        container.appendChild(settingsContainer);
-        return container;
+                AppState.selectedOptions.ruleSettings = ruleSettings;
+
+                this.destroyAllTooltips();
+                this.checkAndApplyDependencies(); // Recheck dependencies
+            });
+
+
+            div.appendChild(advancedSettingsContainer);
+        }
+
+        return div;
     },
 
     updatePresetList() {
@@ -850,97 +755,113 @@ const UI = {
     },
 
     /**
-     * Applies dependency checks and updates UI accordingly.
+     * Generates HTML content for the dependency tooltip.
+     * @param {object} dependencies - The dependency object from data-depends-on.
+     * @returns {string} HTML string for the tooltip.
+     */
+    getDependencyTooltipHTML(dependencies) {
+        if (!dependencies) return '';
+        let html = '<ul class="list-unstyled mb-0 small">';
+        html += '<li>Зависит от:</li>';
+        for (const key in dependencies) {
+            const requiredValue = dependencies[key];
+            let conditionText = '';
+            if (key.includes('.')) {
+                const [sectionId, optionKey] = key.split('.');
+                conditionText = `Опция '<strong>${optionKey}</strong>' в секции '<strong>${sectionId}</strong>' должна быть ${requiredValue ? '<strong>включена</strong>' : '<strong>выключена</strong>'}`;
+            } else {
+                const sectionId = key;
+                const values = Array.isArray(requiredValue) ? requiredValue.join(', ') : requiredValue;
+                conditionText = `Секция '<strong>${sectionId}</strong>' должна иметь значение: <strong>${values}</strong>`;
+            }
+            html += `<li>- ${conditionText}</li>`;
+        }
+        html += '</ul>';
+        return html;
+    },
+
+    /**
+     * Applies dependency checks and updates UI accordingly, adding info icons with tooltips.
      */
     checkAndApplyDependencies() {
-        // Перед инициализацией новых тултипов уничтожаем существующие
-        this.destroyAllTooltips();
+        this.destroyAllTooltips(); // Destroy first
 
-        // Check section cards with dependencies
-        this.optionsContainer.querySelectorAll('.card[data-depends-on]').forEach(card => {
-            const met = this.areDependenciesMet(card);
-            
-            // Add tooltip with dependency info
-            if (!met && !card.dataset.bsToggle) {
-                card.dataset.bsToggle = 'tooltip';
-                card.dataset.bsPlacement = 'top';
-                card.title = 'Эта настройка зависит от другой опции, которая отключена';
-            }
-            
-            // Apply disabled style to entire card
-            card.classList.toggle('disabled-by-dependency', !met);
-            
-            // Disable all inputs and buttons
-            card.querySelectorAll('input, button').forEach(el => {
-                el.disabled = !met;
-            });
-        });
+        const elementsToCheck = [
+            // Check cards first
+            ...this.optionsContainer.querySelectorAll('.card[data-depends-on]'),
+            // Then check modules
+            ...this.modulesContainer.querySelectorAll('.module-container[data-depends-on]'),
+            // Then check individual options within cards
+            ...this.optionsContainer.querySelectorAll('.form-check[data-depends-on]')
+        ];
 
-        // Check module dependencies
-        this.modulesContainer.querySelectorAll('.module-container[data-depends-on]').forEach(div => {
-            const met = this.areDependenciesMet(div);
-            div.classList.toggle('disabled-by-dependency', !met);
-            
-            // Add tooltip explaining dependency
-            if (!met && !div.dataset.bsToggle) {
-                div.dataset.bsToggle = 'tooltip';
-                div.dataset.bsPlacement = 'top';
-                div.title = 'Этот модуль зависит от отключенной опции';
-            }
-            
-            // Disable checkbox
-            const checkbox = div.querySelector('input[type="checkbox"]');
-            if (checkbox) {
-                checkbox.disabled = !met;
-                
-                // If dependencies not met, uncheck and update state
-                if (!met && checkbox.checked) {
-                    checkbox.checked = false;
-                    AppState.updateRuleModuleState(checkbox.value, false);
+        elementsToCheck.forEach(element => {
+            const met = this.areDependenciesMet(element);
+            // Find icon *within* the current element only
+            const existingIcon = element.querySelector(':scope > .dependency-info-icon, :scope > .form-check > .dependency-info-icon, :scope > .card-header > .dependency-info-icon');
+            // Determine where to put the icon (usually after label or header text)
+            const targetElementForIcon = element.querySelector('label, .card-header') || element.firstChild; // Fallback
+
+            if (!met) {
+                // Dependencies NOT met
+                element.classList.add('disabled-by-dependency');
+                // Disable direct children inputs/buttons, but allow info icon interaction
+                element.querySelectorAll(':scope > input, :scope > button, :scope > .form-check > input, :scope > .btn-group > button').forEach(el => el.disabled = true);
+
+                // Uncheck checkboxes if dependencies are not met
+                const checkbox = element.querySelector(':scope > .form-check > input[type="checkbox"]');
+                if (checkbox && checkbox.checked) {
+                     checkbox.checked = false;
+                     if (element.matches('.module-container')) {
+                         AppState.updateRuleModuleState(checkbox.value, false);
+                     } else if (checkbox.classList.contains('rule-option-checkbox')) {
+                         AppState.updateMultiOption(checkbox.dataset.type, checkbox.value, false);
+                     }
+                }
+
+                if (!existingIcon && targetElementForIcon) {
+                    const icon = document.createElement('span');
+                    icon.className = 'dependency-info-icon ms-2';
+                    icon.innerHTML = '<i class="fas fa-info-circle text-muted"></i>';
+
+                    try {
+                        const dependencies = JSON.parse(element.dataset.dependsOn);
+                        const tooltipTitle = this.getDependencyTooltipHTML(dependencies);
+
+                        icon.dataset.bsToggle = 'tooltip';
+                        icon.dataset.bsPlacement = 'right';
+                        icon.dataset.bsHtml = 'true';
+                        icon.setAttribute('title', tooltipTitle);
+
+                        // Insert the icon *after* the target (label/header)
+                        targetElementForIcon.insertAdjacentElement('afterend', icon);
+
+                    } catch (e) {
+                        console.error("Error processing dependsOn data for icon:", e, element.dataset.dependsOn);
+                    }
+                }
+            } else {
+                // Dependencies ARE met
+                element.classList.remove('disabled-by-dependency');
+                 // Enable direct children inputs/buttons
+                element.querySelectorAll(':scope > input, :scope > button, :scope > .form-check > input, :scope > .btn-group > button').forEach(el => el.disabled = false);
+
+                if (existingIcon) {
+                    // Tooltip disposal happens in destroyAllTooltips
+                    existingIcon.remove();
                 }
             }
         });
 
-        // Check option-level dependencies
-        this.optionsContainer.querySelectorAll('.form-check[data-depends-on]').forEach(check => {
-            const met = this.areDependenciesMet(check);
-            check.classList.toggle('disabled-by-dependency', !met);
-            
-            // Disable checkbox
-            const checkbox = check.querySelector('input[type="checkbox"]');
-            if (checkbox) {
-                checkbox.disabled = !met;
-                
-                // If dependencies not met, uncheck and update state
-                if (!met && checkbox.checked) {
-                    checkbox.checked = false;
-                    AppState.updateMultiOption(checkbox.dataset.type, checkbox.value, false);
-                }
-            }
-        });
-        
-        // Перед инициализацией новых тултипов уничтожаем существующие
-        this.destroyAllTooltips();
-        
-        // Initialize Bootstrap tooltips if available
+        // Initialize Bootstrap tooltips for any icons that were added
         if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
-            // Ensure tooltips are only initialized on elements that *actually* need them
-            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]:not(.disabled-by-dependency)')); // Only non-disabled
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('.dependency-info-icon[data-bs-toggle="tooltip"]'));
             tooltipTriggerList.map(function (tooltipTriggerEl) {
-                // Avoid re-initializing if one already exists
-                if (!bootstrap.Tooltip.getInstance(tooltipTriggerEl)) {
+                // Check if instance already exists ONLY IF destroyAllTooltips wasn't called (which it is)
+                // if (!bootstrap.Tooltip.getInstance(tooltipTriggerEl)) {
                     return new bootstrap.Tooltip(tooltipTriggerEl);
-                }
-                return null;
-            });
-            
-            // Also initialize for disabled elements (they might have a tooltip explaining why)
-            const disabledTooltipTriggerList = [].slice.call(document.querySelectorAll('.disabled-by-dependency[data-bs-toggle="tooltip"]'));
-             disabledTooltipTriggerList.map(function (tooltipTriggerEl) {
-                if (!bootstrap.Tooltip.getInstance(tooltipTriggerEl)) {
-                    return new bootstrap.Tooltip(tooltipTriggerEl);
-                }
-                return null;
+                // }
+                // return null;
             });
         }
     },

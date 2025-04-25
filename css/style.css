@@ -110,19 +110,10 @@ body {
 
 /* Style for depends-on disabled elements */
 .disabled-by-dependency {
-    opacity: 0.6;
-    pointer-events: none;
+    opacity: 0.65; /* Slightly less opaque */
+    /* pointer-events: none; */ /* REMOVED - Let parent handle pointer events, icon needs them */
     background-color: #f8f9fa; /* Light gray background */
-    border: 1px dashed #ced4da !important; /* Dashed border */
-    position: relative; /* For tooltip positioning */
-}
-
-.disabled-by-dependency::after {
-    content: "🔒"; /* Lock emoji */
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    font-size: 12px;
+    position: relative; /* Keep for potential absolute positioning inside */
 }
 
 /* Override form-check disabled style */
@@ -133,6 +124,25 @@ body {
 .form-check.disabled-by-dependency .form-check-label {
     color: #6c757d;
     opacity: 0.8;
+}
+
+/* New style for the info icon */
+.dependency-info-icon {
+    cursor: help; /* Indicate help is available */
+    display: inline-block; /* Ensure it flows with text */
+    vertical-align: middle; /* Align with text */
+    pointer-events: auto !important; /* Ensure icon is always interactive for tooltip */
+}
+
+/* Tooltip styling adjustments if needed */
+.tooltip-inner {
+    text-align: left; /* Ensure list items align left */
+    max-width: 300px; /* Allow wider tooltips for HTML content */
+}
+
+.tooltip-inner ul {
+    padding-left: 1rem; /* Indent list items */
+    margin-top: 0.25rem;
 }
 
 #copy-rules-btn {
@@ -184,32 +194,30 @@ body {
 }
 
 /* Advanced mode styling */
-.advanced-settings {
-    background-color: #f8f9fa;
-    border-radius: 0.25rem;
+/* .advanced-settings { ... } */
+/* .rule-advanced-settings { ... } */
+/* .rule-advanced-settings:last-child { ... } */
+/* .advanced-settings-detail { ... } */
+/* .regular-modules { ... } */
+
+/* Styles for integrated advanced module settings */
+.advanced-module-settings {
+    padding: 0.5rem 0.5rem 0.5rem 1.5rem; /* Indent and add padding */
+    margin-top: 0.5rem;
+    background-color: #f8f9fa; /* Light background */
+    border-top: 1px solid #eee;
+    border-radius: 0 0 0.25rem 0.25rem; /* Rounded bottom corners */
 }
 
-.rule-advanced-settings {
-    padding: 0.5rem;
-    background-color: white;
-    border-radius: 0.25rem;
+.advanced-module-settings .form-check {
+    padding-left: 0.5rem; /* Adjust padding for inner elements */
+    margin-bottom: 0.25rem;
+}
+.advanced-module-settings .strictness-container {
     margin-top: 0.5rem;
 }
-
-.rule-advanced-settings:last-child {
-    border-bottom: none !important;
-}
-
-.advanced-settings-detail {
-    background-color: #f8f9fa;
-    padding: 0.5rem;
-    margin-top: 0.5rem;
-    border-radius: 0.25rem;
-    margin-left: 1rem !important;
-}
-
-.regular-modules {
-    background-color: white;
+.advanced-module-settings .strictness-container .small {
+     margin-bottom: 0.25rem !important;
 }
 
 /* Module container styling */
@@ -218,10 +226,18 @@ body {
     padding: 0.4rem 0.6rem 0.4rem 2rem;
     border-radius: 0.25rem;
     transition: background-color 0.15s ease-in-out;
+    border-bottom: 1px solid #eee; /* Separator line */
+    margin-bottom: 0;
+    border-radius: 0;
+    padding: 0.4rem 0.6rem 0.4rem 2rem; /* Reset padding */
 }
 
 .module-container:hover {
     background-color: #f1f3f5;
+}
+
+.module-container:last-child {
+     border-bottom: none;
 }
 
 /* Form switch styling */
